@@ -161,10 +161,34 @@ async function run() {
         check('prune: seen recente conservato',
             dm.parserState.seen['msg:req'] === dateKeyDaysAgo(0));
 
+        // --- plan persistence ---------------------------------------------
+        check('plan: vuoto su stato nuovo', dm.getPlan().usage === null && dm.getPlan().backoffUntil === 0);
+        const fetchedAt = new Date(Date.now() - 120000);
+        dm.setPlan({
+            usage: {
+                fiveHour: {percent: 24, resetsAt: new Date('2026-11-12T17:50:00Z')},
+                sevenDay: {percent: 51, resetsAt: null},
+                scoped: [{label: 'Fable', percent: 63, resetsAt: new Date('2026-11-13T21:00:00Z')}],
+                fetchedAt,
+            },
+            backoffUntil: 1234567,
+            rateLimitHits: 2,
+        });
+        dm.setPlan({usage: null, rateLimitHits: 3}); // usage null = invariato
+
         // --- save -> load roundtrip ----------------------------------------
         await dm.save();
         const dm2 = new DataManager(statePath);
         await dm2.load();
+
+        const plan = dm2.getPlan();
+        check('plan roundtrip: percentuali',
+            plan.usage?.fiveHour?.percent === 24 && plan.usage?.sevenDay?.percent === 51);
+        check('plan roundtrip: date ripristinate',
+            plan.usage?.fetchedAt instanceof Date && plan.usage.fetchedAt.getTime() === fetchedAt.getTime() &&
+            plan.usage.fiveHour.resetsAt instanceof Date && plan.usage.sevenDay.resetsAt === null);
+        check('plan roundtrip: scoped', plan.usage?.scoped?.length === 1 && plan.usage.scoped[0].label === 'Fable');
+        check('plan roundtrip: back-off', plan.backoffUntil === 1234567 && plan.rateLimitHits === 3);
 
         check('roundtrip: giorni di oggi',
             dm2.getToday().input === 120 && dm2.getToday().output === 55,

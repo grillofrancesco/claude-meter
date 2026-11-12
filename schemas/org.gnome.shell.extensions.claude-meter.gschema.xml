@@ -8,6 +8,12 @@
       <summary>Intervallo di aggiornamento</summary>
       <description>Ogni quanti secondi aggiornare i dati di utilizzo (30-3600).</description>
     </key>
+    <key name="plan-refresh-interval" type="u">
+      <default>300</default>
+      <range min="60" max="3600"/>
+      <summary>Intervallo di aggiornamento del piano</summary>
+      <description>Ogni quanti secondi interrogare Anthropic per le percentuali del piano (60-3600). L'endpoint limita le richieste frequenti.</description>
+    </key>
     <key name="bar-color-mode" type="s">
       <choices>
         <choice value="accent"/>

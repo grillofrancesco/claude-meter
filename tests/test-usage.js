@@ -6,9 +6,18 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import System from 'system';
 
-import { UsageManager, UsageError, parseUsageResponse } from '../lib/usageManager.js';
+import { UsageManager, UsageError, parseUsageResponse, parseRetryAfter } from '../lib/usageManager.js';
 
 let passed = 0;
+
+function testRetryAfter() {
+    const now = Date.UTC(2026, 10, 12, 10, 0, 0);
+    checkEqual('Retry-After secondi', parseRetryAfter('120', now), 120000);
+    checkEqual('Retry-After 0 -> null', parseRetryAfter('0', now), null);
+    checkEqual('Retry-After assente -> null', parseRetryAfter(null, now), null);
+    checkEqual('Retry-After data HTTP', parseRetryAfter('Thu, 12 Nov 2026 10:01:00 GMT', now), 60000);
+    checkEqual('Retry-After invalido -> null', parseRetryAfter('boh', now), null);
+}
 let failed = 0;
 
 function check(name, condition, detail = '') {
@@ -258,6 +267,7 @@ async function main() {
         removeRecursive(tmpDir);
     }
 
+    testRetryAfter();
     await testLive();
 
     print(`\n${passed} passed, ${failed} failed`);

@@ -18,7 +18,6 @@
     background-color: transparent;
 }
 
-
 .claude-meter-section {
     margin: 0;
 }
@@ -66,45 +65,6 @@
     margin-top: 4px;
 }
 
-
-
-
-
-
-
-
-
-
-/* Footer: last update + refresh button. */
-.claude-meter-footer {
-    margin: 0;
-    spacing: 8px;
-}
-
-.claude-meter-refresh-button {
-    padding: 4px;
-    border-radius: 999px;
-    background-color: transparent;
-    border: none;
-    box-shadow: none;
-}
-
-.claude-meter-refresh-button:hover {
-    background-color: rgba(127, 127, 127, 0.2);
-}
-
-.claude-meter-refresh-button:active {
-    background-color: rgba(127, 127, 127, 0.35);
-}
-
-.claude-meter-refresh-button:insensitive {
-    background-color: transparent;
-}
-
-.claude-meter-refresh-icon {
-    icon-size: 16px;
-}
-
 /* Progress bars (colors per theme variant). */
 .claude-meter-bar {
     border-radius: 3px;
@@ -121,11 +81,6 @@
 /* Accent mode: always the system accent color. */
 .claude-meter-mode-accent .claude-meter-fill {
     background-color: -st-accent-color;
-}
-
-/* "Mostra di più" collapsible. */
-.claude-meter-more {
-    font-size: 0.95em;
 }
 
 /* 7 days chart. */
@@ -153,4 +108,16 @@
 .claude-meter-chart-total {
     font-size: 0.8em;
     margin-top: 6px;
+}
+
+
+/* Plan data age ("Piano aggiornato 3 min fa · nuovo tentativo alle 14:05"). */
+.claude-meter-plan-age {
+    font-size: 0.8em;
+    margin-top: 6px;
+}
+
+/* Page navigation rows ("Dettagli ›" / "‹ Dettagli"). */
+.claude-meter-nav-title {
+    font-weight: 700;
 }

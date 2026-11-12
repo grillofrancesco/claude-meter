@@ -31,6 +31,23 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         });
         refreshGroup.add(refreshRow);
         settings.bind('refresh-interval', refreshRow, 'value', Gio.SettingsBindFlags.DEFAULT);
+        refreshRow.title = 'Token Claude Code';
+        refreshRow.subtitle = 'Secondi tra due letture dei file locali (30-3600)';
+
+        const planRow = new Adw.SpinRow({
+            title: 'Utilizzo del piano',
+            subtitle: 'Secondi tra due richieste ad Anthropic (60-3600). Valori bassi possono causare blocchi temporanei.',
+            adjustment: new Gtk.Adjustment({
+                lower: 60,
+                upper: 3600,
+                step_increment: 30,
+                page_increment: 300,
+                value: settings.get_uint('plan-refresh-interval'),
+            }),
+            digits: 0,
+        });
+        refreshGroup.add(planRow);
+        settings.bind('plan-refresh-interval', planRow, 'value', Gio.SettingsBindFlags.DEFAULT);
 
         const lookGroup = new Adw.PreferencesGroup({title: 'Aspetto'});
         page.add(lookGroup);
