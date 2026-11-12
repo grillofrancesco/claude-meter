@@ -1,0 +1,156 @@
+/* Claude Meter — theme adaptive styles.
+ * Every class is prefixed with `claude-meter-`; no global selectors.
+ * Text colors are inherited from the theme. Theme-specific colors live in
+ * styles/dark.css and styles/light.css; build.sh concatenates them into
+ * stylesheet-dark.css / stylesheet-light.css, which GNOME Shell swaps on theme change.
+ */
+
+/* Menu content box (popup-menu-content). */
+.claude-meter-menu {
+    min-width: 280px;
+    padding: 6px;
+}
+
+/* Non-reactive rows / sections. */
+.claude-meter-item {
+    padding: 4px 12px;
+    margin: 0;
+    background-color: transparent;
+}
+
+
+.claude-meter-section {
+    margin: 0;
+}
+
+/* Section titles: small, bold, dimmed like quick settings subtitles. */
+.claude-meter-header {
+    font-size: 0.82em;
+    font-weight: 700;
+    opacity: 0.6;
+    margin-top: 2px;
+    margin-bottom: 6px;
+}
+
+/* Meter (label + percent, bar, reset line). */
+.claude-meter-meter {
+    margin-bottom: 10px;
+}
+
+.claude-meter-row {
+    margin: 0;
+    spacing: 8px;
+}
+
+.claude-meter-label {
+    font-size: 0.95em;
+}
+
+.claude-meter-value {
+    font-size: 0.95em;
+    font-weight: 700;
+}
+
+.claude-meter-dim {
+    opacity: 0.6;
+    font-size: 0.9em;
+}
+
+.claude-meter-reset {
+    font-size: 0.82em;
+    margin-top: 2px;
+}
+
+.claude-meter-error {
+    font-size: 0.85em;
+    margin-top: 4px;
+}
+
+
+
+
+
+
+
+
+
+
+/* Footer: last update + refresh button. */
+.claude-meter-footer {
+    margin: 0;
+    spacing: 8px;
+}
+
+.claude-meter-refresh-button {
+    padding: 4px;
+    border-radius: 999px;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.claude-meter-refresh-button:hover {
+    background-color: rgba(127, 127, 127, 0.2);
+}
+
+.claude-meter-refresh-button:active {
+    background-color: rgba(127, 127, 127, 0.35);
+}
+
+.claude-meter-refresh-button:insensitive {
+    background-color: transparent;
+}
+
+.claude-meter-refresh-icon {
+    icon-size: 16px;
+}
+
+/* Progress bars (colors per theme variant). */
+.claude-meter-bar {
+    border-radius: 3px;
+    min-height: 6px;
+    margin-top: 6px;
+    margin-bottom: 2px;
+}
+
+.claude-meter-fill {
+    border-radius: 3px;
+    min-height: 6px;
+}
+
+/* Accent mode: always the system accent color. */
+.claude-meter-mode-accent .claude-meter-fill {
+    background-color: -st-accent-color;
+}
+
+/* "Mostra di più" collapsible. */
+.claude-meter-more {
+    font-size: 0.95em;
+}
+
+/* 7 days chart. */
+.claude-meter-chart {
+    margin-top: 2px;
+    spacing: 6px;
+}
+
+.claude-meter-chart-yaxis {
+    padding-right: 2px;
+}
+
+.claude-meter-chart-area {
+    -claude-meter-chart-color: -st-accent-color;
+}
+
+.claude-meter-chart-label {
+    font-size: 0.75em;
+}
+
+.claude-meter-chart-xaxis {
+    margin-top: 3px;
+}
+
+.claude-meter-chart-total {
+    font-size: 0.8em;
+    margin-top: 6px;
+}

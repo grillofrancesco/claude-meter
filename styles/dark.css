@@ -1,0 +1,21 @@
+
+/* Dark variant: same tones as the GNOME Shell sliders (gnome-shell-dark.css). */
+.claude-meter-bar {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.claude-meter-mode-traffic .claude-meter-normal {
+    background-color: #33d17a;
+}
+
+.claude-meter-mode-traffic .claude-meter-warning {
+    background-color: #f6d32d;
+}
+
+.claude-meter-mode-traffic .claude-meter-critical {
+    background-color: #c01c28;
+}
+
+.claude-meter-error {
+    color: #f6d32d;
+}

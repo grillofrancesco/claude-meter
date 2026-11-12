@@ -1,0 +1,9 @@
+{
+  "uuid": "claude-meter@whitebear",
+  "name": "Claude Meter",
+  "description": "Utilizzo del piano Claude Pro e token di Claude Code nella barra superiore.",
+  "shell-version": ["50"],
+  "settings-schema": "org.gnome.shell.extensions.claude-meter",
+  "version-name": "0.1.0",
+  "url": ""
+}

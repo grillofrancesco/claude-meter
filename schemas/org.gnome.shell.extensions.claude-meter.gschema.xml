@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.claude-meter"
+          path="/org/gnome/shell/extensions/claude-meter/">
+    <key name="refresh-interval" type="u">
+      <default>60</default>
+      <range min="30" max="3600"/>
+      <summary>Intervallo di aggiornamento</summary>
+      <description>Ogni quanti secondi aggiornare i dati di utilizzo (30-3600).</description>
+    </key>
+    <key name="bar-color-mode" type="s">
+      <choices>
+        <choice value="accent"/>
+        <choice value="traffic"/>
+      </choices>
+      <default>'accent'</default>
+      <summary>Colore delle barre</summary>
+      <description>'accent': colore d'accento di sistema; 'traffic': verde/giallo/rosso secondo le soglie.</description>
+    </key>
+    <key name="warn-threshold" type="i">
+      <default>70</default>
+      <range min="1" max="100"/>
+      <summary>Soglia di avviso</summary>
+      <description>Percentuale di utilizzo oltre la quale l'indicatore diventa giallo.</description>
+    </key>
+    <key name="critical-threshold" type="i">
+      <default>90</default>
+      <range min="1" max="100"/>
+      <summary>Soglia critica</summary>
+      <description>Percentuale di utilizzo oltre la quale l'indicatore diventa rosso.</description>
+    </key>
+  </schema>
+</schemalist>
