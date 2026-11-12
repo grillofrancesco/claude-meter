@@ -13,10 +13,10 @@ Colori: le barre seguono il tema chiaro/scuro e, a scelta nelle preferenze, il c
 ```bash
 ./install.sh
 # Wayland: esci e rientra nella sessione, poi
-gnome-extensions enable claude-meter@whitebear
+gnome-extensions enable claude-meter@grillofra
 ```
 
-Disinstallazione: `gnome-extensions uninstall claude-meter@whitebear` (stato locale in `~/.local/share/claude-meter/`).
+Disinstallazione: `gnome-extensions uninstall claude-meter@grillofra` (stato locale in `~/.local/share/claude-meter/`).
 
 ## Dipendenze
 Nessuna oltre a GNOME Shell 50 (GJS, St, Soup 3). Serve Claude Code autenticato con un account Pro/Max (`~/.claude/.credentials.json`).

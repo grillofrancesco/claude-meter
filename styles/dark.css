@@ -20,3 +20,8 @@
     color: #f6d32d;
 }
 
+
+/* Title at full contrast (non-reactive menu items are dimmed by the theme). */
+.claude-meter-title {
+    color: #ffffff;
+}

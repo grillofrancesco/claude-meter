@@ -1,5 +1,5 @@
 {
-  "uuid": "claude-meter@whitebear",
+  "uuid": "claude-meter@grillofra",
   "name": "Claude Meter",
   "description": "Utilizzo del piano Claude Pro e token di Claude Code nella barra superiore.",
   "shell-version": ["50"],

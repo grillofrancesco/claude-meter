@@ -106,8 +106,7 @@
 }
 
 .claude-meter-chart-total {
-    font-size: 0.8em;
-    margin-top: 6px;
+    font-weight: 400;
 }
 
 
@@ -117,7 +116,10 @@
     margin-top: 6px;
 }
 
-/* Page navigation rows ("Dettagli ›" / "‹ Dettagli"). */
-.claude-meter-nav-title {
+
+/* Menu title. */
+.claude-meter-title {
+    font-size: 1.15em;
     font-weight: 700;
+    margin-top: 2px;
 }

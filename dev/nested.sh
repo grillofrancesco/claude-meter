@@ -12,8 +12,8 @@ case "${1:-}" in
 start)
     "$0" stop
     (cd "$P" && ./build.sh >/dev/null) || exit 1
-    E="$X/gnome-shell/extensions"; rm -rf "$E/claude-meter@whitebear"; mkdir -p "$E/claude-meter@whitebear" "$E/devtest@local"
-    (cd "$E/claude-meter@whitebear" && unzip -q -o "$P/dist/claude-meter@whitebear.shell-extension.zip" && glib-compile-schemas schemas)
+    E="$X/gnome-shell/extensions"; rm -rf "$E/claude-meter@grillofra"; mkdir -p "$E/claude-meter@grillofra" "$E/devtest@local"
+    (cd "$E/claude-meter@grillofra" && unzip -q -o "$P/dist/claude-meter@grillofra.shell-extension.zip" && glib-compile-schemas schemas)
     echo '{"uuid":"devtest@local","name":"devtest","description":"test only","shell-version":["50"]}' > "$E/devtest@local/metadata.json"
     printf '%s\n' "import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';" \
         "export default class extends Extension { enable() { global.context.unsafe_mode = true; } disable() {} }" > "$E/devtest@local/extension.js"
@@ -23,7 +23,7 @@ export XDG_DATA_HOME="$X" GSETTINGS_BACKEND=memory
 gnome-shell --headless --virtual-monitor 1280x900 --wayland --no-x11 > "$D/shell.log" 2>&1 &
 echo \$! > "$D/shell.pid"
 for i in \$(seq 1 30); do gdbus introspect --session -d org.gnome.Shell -o /org/gnome/Shell >/dev/null 2>&1 && break; sleep 1; done
-gnome-extensions enable devtest@local; gnome-extensions enable claude-meter@whitebear
+gnome-extensions enable devtest@local; gnome-extensions enable claude-meter@grillofra
 echo "\$DBUS_SESSION_BUS_ADDRESS" > "$D/bus.txt"
 wait
 IN

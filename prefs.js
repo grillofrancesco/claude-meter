@@ -1,6 +1,7 @@
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
@@ -18,8 +19,8 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         page.add(refreshGroup);
 
         const refreshRow = new Adw.SpinRow({
-            title: 'Intervallo di aggiornamento',
-            subtitle: "Secondi tra un aggiornamento e l'altro (30-3600)",
+            title: 'Tempo tra lettura dei file locali',
+            subtitle: 'Secondi (30-3600)',
             adjustment: new Gtk.Adjustment({
                 lower: 30,
                 upper: 3600,
@@ -31,12 +32,10 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         });
         refreshGroup.add(refreshRow);
         settings.bind('refresh-interval', refreshRow, 'value', Gio.SettingsBindFlags.DEFAULT);
-        refreshRow.title = 'Token Claude Code';
-        refreshRow.subtitle = 'Secondi tra due letture dei file locali (30-3600)';
 
         const planRow = new Adw.SpinRow({
-            title: 'Utilizzo del piano',
-            subtitle: 'Secondi tra due richieste ad Anthropic (60-3600). Valori bassi possono causare blocchi temporanei.',
+            title: 'Tempo tra lettura dei dati online',
+            subtitle: 'Secondi (60-3600). Valori bassi possono causare blocchi temporanei.',
             adjustment: new Gtk.Adjustment({
                 lower: 60,
                 upper: 3600,
@@ -55,7 +54,9 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         const modes = ['accent', 'traffic'];
         const colorRow = new Adw.ComboRow({
             title: 'Colore delle barre',
-            subtitle: "Colore d'accento di sistema, oppure verde/giallo/rosso in base alle soglie",
+            // Explicit line break: a narrower subtitle leaves room for the dropdown.
+            subtitle: "Accento di sistema, oppure\nverde/giallo/rosso secondo le soglie",
+            subtitle_lines: 2,
             model: Gtk.StringList.new(["Colore d'accento", 'Semaforo (verde/giallo/rosso)']),
         });
         lookGroup.add(colorRow);
@@ -76,7 +77,7 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         });
 
         const thresholdGroup = new Adw.PreferencesGroup({
-            title: 'Soglie colori',
+            title: 'Soglie colori (solo con semaforo)',
             description: "Percentuale di utilizzo oltre la quale l'indicatore cambia colore.",
         });
         page.add(thresholdGroup);
@@ -137,5 +138,19 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         };
         warnRow.connect('notify::value', keepOrder);
         criticalRow.connect('notify::value', keepOrder);
+
+        // Do not start with the first spin button focused (and its text selected):
+        // GTK assigns the initial focus when the window is shown; undo it once.
+        const focusId = window.connect('notify::focus-widget', () => {
+            if (!window.get_focus())
+                return;
+            window.disconnect(focusId);
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
+                for (const row of [refreshRow, planRow])
+                    row.set_position(-1); // clears the select-on-focus selection
+                window.set_focus(null);
+                return GLib.SOURCE_REMOVE;
+            });
+        });
     }
 }

@@ -4,7 +4,7 @@ Monitors Claude usage from the GNOME top bar. Full spec: `plan.md` (Italian).
 
 ## Stack
 - GNOME Shell 50 (Fedora 44, Wayland), GJS 1.88, **ES modules only** (`import ... from 'gi://Gio'`, `resource:///org/gnome/shell/...`). No `imports.*` legacy syntax.
-- UUID: `claude-meter@whitebear`. GSettings schema id: `org.gnome.shell.extensions.claude-meter`.
+- UUID: `claude-meter@grillofra`. GSettings schema id: `org.gnome.shell.extensions.claude-meter`.
 - No external dependencies. No GTK in shell-side code (only `prefs.js` may use Gtk4/Adw).
 - UI strings in **Italian**, hardcoded (no gettext in v1).
 
