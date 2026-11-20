@@ -14,6 +14,16 @@
       <summary>Intervallo di aggiornamento del piano</summary>
       <description>Ogni quanti secondi interrogare Anthropic per le percentuali del piano (60-3600). L'endpoint limita le richieste frequenti.</description>
     </key>
+    <key name="language" type="s">
+      <choices>
+        <choice value=""/>
+        <choice value="it"/>
+        <choice value="en"/>
+      </choices>
+      <default>''</default>
+      <summary>Interface language</summary>
+      <description>'it' or 'en'. Empty = not chosen yet: Italian if the desktop language is Italian, English otherwise.</description>
+    </key>
     <key name="bar-color-mode" type="s">
       <choices>
         <choice value="accent"/>

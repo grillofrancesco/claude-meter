@@ -76,7 +76,10 @@ Verifica 1 (orchestratore): merge, `tests/run-all.sh`, shell annidata (avvio, `e
 
 Verifica 2: come la verifica 1, più la shell annidata con `LANGUAGE=en` e con `it`.
 
-### Ondata 3 — sequenziale (un agente, I)
+### Ondata 3 — fusa nell'ondata 2
+Ogni agente dell'ondata 2 fa anche la parte di lingua della propria area (F: rietichettatura del menu; G: menu nell'header e ricostruzione delle pagine; H: `extension.js` applica e ascolta `language`). La chiave `language` nello schema e `lib/i18n.js` completo li scrive l'orchestratore prima dell'ondata 2. Le stranezze di `format.js` trovate dai test (1000K, minuti persi oltre un giorno, soglia null = 0, data futura = 'adesso', ecc.) le corregge E.
+
+Piano originale:
 - Chiave `language` nello schema; `extension.js` la applica e la ascolta; l'indicatore si ridisegna nella nuova lingua; menu a tendina nell'header delle prefs con ricostruzione delle pagine.
 - Verifica 3: cambio di lingua dal vivo nella shell annidata (`gsettings set ... language en` → screenshot) e nelle prefs (a mano).
 
