@@ -1,4 +1,7 @@
+import Adw from 'gi://Adw';
+import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
+import Gtk from 'gi://Gtk';
 
 import {SessionStore} from '../lib/sessionStore.js';
 import {
@@ -9,13 +12,64 @@ import {buildGeneralPage} from './generalPage.js';
 import {SignalTracker, clearInitialSpinFocus} from './widgets.js';
 import {createLanguageDropDown, findMainHeaderBar} from './languageSelector.js';
 
+// Brand name shown as the window title: never translated.
+const WINDOW_TITLE = 'Claude Meter';
+
+// The tab icons (brush, chat bubble) ship with the extension: add its icons/
+// directory to the icon theme once per prefs process.
+const iconDirs = new Set();
+function addIconsDir(dir) {
+    const display = Gdk.Display.get_default();
+    if (!dir || !display || iconDirs.has(dir))
+        return;
+    Gtk.IconTheme.get_for_display(display).add_search_path(dir);
+    iconDirs.add(dir);
+}
+
+// First descendant of `root` that is an instance of `type`, or null.
+function findDescendant(root, type) {
+    if (root instanceof type)
+        return root;
+    for (let child = root.get_first_child(); child; child = child.get_next_sibling()) {
+        const found = findDescendant(child, type);
+        if (found)
+            return found;
+    }
+    return null;
+}
+
+// "Claude Meter" at the start of the header bar, next to the centred page tabs.
+// On a narrow window libadwaita moves the tabs to a bottom bar and shows the
+// window title in the header itself: the label is hidden then (no duplicate).
+function addHeaderTitle(window, headerBar, tracker) {
+    const label = new Gtk.Label({
+        label: WINDOW_TITLE,
+        css_classes: ['heading'],
+        valign: Gtk.Align.CENTER,
+        margin_start: 6,
+    });
+    headerBar.pack_start(label);
+    const bottomBar = findDescendant(window, Adw.ViewSwitcherBar);
+    if (bottomBar) {
+        const sync = () => {
+            label.visible = !bottomBar.reveal;
+        };
+        sync();
+        tracker.connect(bottomBar, 'notify::reveal', sync);
+    }
+}
+
 // Fills an Adw.PreferencesWindow: general page + conversations page, a language
 // selector in the header bar, and a live rebuild of both pages when `language`
 // changes. Kept apart from prefs.js (which needs the shell's ExtensionPreferences)
 // so that it can be exercised from plain gjs.
 // Returns {rebuild, headerBar, generalPage, sessionsPage} (for tests).
-export function fillWindow(window, settings, {store = null} = {}) {
+export function fillWindow(window, settings, {store = null, iconsDir = null} = {}) {
     setLanguage(resolveLanguage(settings.get_string('language')));
+    addIconsDir(iconsDir);
+    window.title = WINDOW_TITLE;
+    // Few options: the search button would only push the title aside.
+    window.search_enabled = false;
 
     // Window lifetime: language selector, language listener, settings handlers.
     const windowTracker = new SignalTracker(window);
@@ -74,6 +128,7 @@ export function fillWindow(window, settings, {store = null} = {}) {
             return false;
         selector = createLanguageDropDown(settings, windowTracker);
         headerBar.pack_end(selector);
+        addHeaderTitle(window, headerBar, windowTracker);
         return true;
     };
 

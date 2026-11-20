@@ -73,7 +73,7 @@ export class SessionsPage {
 
         this.page = new Adw.PreferencesPage({
             title: t('prefs.sessions.title'),
-            icon_name: 'user-trash-symbolic',
+            icon_name: 'claude-meter-chat-symbolic',
         });
 
         // Always-visible first group: hosts the header buttons and the
@@ -242,7 +242,7 @@ export class SessionsPage {
 
     _showEmpty() {
         this._setStatus(new Adw.StatusPage({
-            icon_name: 'user-trash-symbolic',
+            icon_name: 'claude-meter-chat-symbolic',
             title: t('prefs.sessions.empty'),
         }));
     }

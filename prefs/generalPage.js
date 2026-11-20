@@ -13,7 +13,7 @@ import {createLanguageComboRow} from './languageSelector.js';
 export function buildGeneralPage(settings, tracker, {languageRow = false} = {}) {
     const page = new Adw.PreferencesPage({
         title: t('prefs.general.title'),
-        icon_name: 'preferences-system-symbolic',
+        icon_name: 'claude-meter-brush-symbolic',
     });
 
     // Groups are created in code order but added to the page at the end of this
