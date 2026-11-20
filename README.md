@@ -6,7 +6,7 @@ Estensione GNOME Shell (Fedora 44, GNOME 50, Wayland) che mostra nella barra sup
 - pagina "Dettagli ›": token di input/output di Claude Code di oggi (da `~/.claude/projects/**/*.jsonl`, cache esclusa), grafico degli ultimi 7 giorni, preferenze;
 - aggiornamento automatico: token locali ogni 60 s, percentuali del piano ogni 5 min e all'apertura del menu se il dato ha più di 3 min. Le ultime percentuali valide restano salvate, così dopo un nuovo accesso sono subito visibili. L'endpoint di Anthropic risponde 429 se interrogato troppo spesso: in quel caso l'estensione attende (5→30 min, o quanto indicato da `Retry-After`) e mostra l'orario del prossimo tentativo, anche dopo un nuovo accesso.
 
-Lingua: italiano o inglese, dal menu in alto a destra nelle preferenze (finché non si sceglie, segue la lingua del desktop; inglese se non è italiano).
+Lingua: italiano o inglese, dalla prima voce delle preferenze (finché non si sceglie, segue la lingua del desktop; inglese se non è italiano).
 
 Colori: le barre seguono il tema chiaro/scuro e, a scelta nelle preferenze, il colore d'accento di sistema oppure verde/giallo/rosso in base alle soglie. Lo storico (30 giorni) è conservato in `~/.local/share/claude-meter/state.json`.
 

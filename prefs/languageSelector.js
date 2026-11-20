@@ -28,23 +28,3 @@ export function createLanguageComboRow(settings, tracker) {
     bindLanguage(settings, row, tracker);
     return row;
 }
-
-// Walk the widget tree depth-first and collect the Adw.HeaderBar widgets.
-export function findHeaderBars(root) {
-    const found = [];
-    const walk = widget => {
-        if (widget instanceof Adw.HeaderBar)
-            found.push(widget);
-        for (let child = widget.get_first_child(); child; child = child.get_next_sibling())
-            walk(child);
-    };
-    walk(root);
-    return found;
-}
-
-// The main header bar of a PreferencesWindow: the first mapped one in tree
-// order (search / subpage bars are unmapped or come later), else the first.
-export function findMainHeaderBar(window) {
-    const bars = findHeaderBars(window);
-    return bars.find(b => b.get_mapped()) ?? bars[0] ?? null;
-}
