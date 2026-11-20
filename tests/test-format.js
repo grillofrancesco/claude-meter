@@ -7,6 +7,9 @@ import {
     formatTokens, formatPercent, formatCountdown, formatRelativeTime, formatClock,
     formatDayLabel, levelFor, toDate, dayKey, formatWeekdayShort,
 } from '../lib/format.js';
+import {setLanguage} from '../lib/i18n.js';
+
+setLanguage('it');
 
 let passed = 0;
 let failed = 0;
@@ -33,10 +36,15 @@ eq('formatTokens(999.4) rounds', formatTokens(999.4), '999');
 eq('formatTokens(1000)', formatTokens(1000), '1K');
 eq('formatTokens(1500)', formatTokens(1500), '1.5K');
 eq('formatTokens(12345)', formatTokens(12345), '12.3K');
-eq('formatTokens(999999)', formatTokens(999999), '1000K');
+eq('formatTokens(999999)', formatTokens(999999), '1M');
+eq('formatTokens(999950) rolls over', formatTokens(999950), '1M');
+eq('formatTokens(999949)', formatTokens(999949), '999.9K');
+eq('formatTokens(-999999) rolls over', formatTokens(-999999), '-1M');
+eq('formatTokens(-999999999)', formatTokens(-999999999), '-1B');
+eq('formatTokens(999.5) rolls over', formatTokens(999.5), '1K');
 eq('formatTokens(1e6)', formatTokens(1e6), '1M');
 eq('formatTokens(1.25e6)', formatTokens(1.25e6), '1.3M');
-eq('formatTokens(999999999)', formatTokens(999999999), '1000M');
+eq('formatTokens(999999999)', formatTokens(999999999), '1B');
 eq('formatTokens(1e9)', formatTokens(1e9), '1B');
 eq('formatTokens(3.4e9)', formatTokens(3.4e9), '3.4B');
 eq('formatTokens(-5)', formatTokens(-5), '-5');
@@ -97,7 +105,8 @@ eq('dayKey leap day', dayKey(D(2024, 2, 29)), '2024-02-29');
     eq('countdown 23 h', formatCountdown(at(23 * H), now), 'tra 23 h');
     eq('countdown 23 h 59 min', formatCountdown(at(23 * H + 59 * M), now), 'tra 23 h 59 min');
     eq('countdown 24 h', formatCountdown(at(DAY), now), 'tra 1 g');
-    eq('countdown 24 h 30 min -> minutes dropped', formatCountdown(at(DAY + 30 * M), now), 'tra 1 g');
+    eq('countdown 24 h 30 min keeps minutes', formatCountdown(at(DAY + 30 * M), now), 'tra 1 g 30 min');
+    eq('countdown 1 g 2 h 30 min drops minutes', formatCountdown(at(DAY + 2 * H + 30 * M), now), 'tra 1 g 2 h');
     eq('countdown 1 g 1 h', formatCountdown(at(DAY + H), now), 'tra 1 g 1 h');
     eq('countdown 3 g 5 h', formatCountdown(at(3 * DAY + 5 * H), now), 'tra 3 g 5 h');
     eq('countdown 7 g', formatCountdown(at(7 * DAY), now), 'tra 7 g');
@@ -114,7 +123,7 @@ eq('dayKey leap day', dayKey(D(2024, 2, 29)), '2024-02-29');
         eq(`formatRelativeTime(${String(v)}) -> mai`, formatRelativeTime(v, now), 'mai');
     eq('relative 0', formatRelativeTime(ago(0), now), 'adesso');
     eq('relative 59.999 s', formatRelativeTime(ago(59999), now), 'adesso');
-    eq('relative future -> adesso', formatRelativeTime(new Date(now.getTime() + 5 * M), now), 'adesso');
+    eq('relative future (clock skew) -> adesso', formatRelativeTime(new Date(now.getTime() + 5 * M), now), 'adesso');
     eq('relative 60 s', formatRelativeTime(ago(60 * S), now), '1 min fa');
     eq('relative 59 min 59 s', formatRelativeTime(ago(59 * M + 59 * S), now), '59 min fa');
     eq('relative 60 min', formatRelativeTime(ago(60 * M), now), '1 h fa');
@@ -152,11 +161,11 @@ eq('dayKey leap day', dayKey(D(2024, 2, 29)), '2024-02-29');
         ['02', '03', '04', '05', '06', '07', '08']
             .map(d => formatDayLabel(`2025-11-${d}`, D(2030, 6, 1)).split(' ')[0]).join(','),
         'dom,lun,mar,mer,gio,ven,sab');
-    eq('day invalid 2025-02-30 returns input', formatDayLabel('2025-02-30', now), '2025-02-30');
-    eq('day invalid abc returns input', formatDayLabel('abc', now), 'abc');
-    eq('day invalid month 13 returns input', formatDayLabel('2025-13-01', now), '2025-13-01');
-    eq('day non-padded 2025-1-1 returns input', formatDayLabel('2025-1-1', now), '2025-1-1');
-    eq('day non-leap Feb 29 returns input', formatDayLabel('2025-02-29', now), '2025-02-29');
+    eq('day invalid 2025-02-30 -> dash', formatDayLabel('2025-02-30', now), DASH);
+    eq('day invalid abc -> dash', formatDayLabel('abc', now), DASH);
+    eq('day invalid month 13 -> dash', formatDayLabel('2025-13-01', now), DASH);
+    eq('day non-padded 2025-1-1 -> dash', formatDayLabel('2025-1-1', now), DASH);
+    eq('day non-leap Feb 29 -> dash', formatDayLabel('2025-02-29', now), DASH);
     eq('day empty -> dash', formatDayLabel('', now), DASH);
     eq('day null -> dash', formatDayLabel(null, now), DASH);
     eq('day undefined -> dash', formatDayLabel(undefined, now), DASH);
@@ -174,7 +183,9 @@ eq('dayKey leap day', dayKey(D(2024, 2, 29)), '2024-02-29');
     eq('weekday invalid -> dash', formatWeekdayShort('2025-02-30', now), DASH);
     eq('weekday abc -> dash', formatWeekdayShort('abc', now), DASH);
     eq('weekday null -> dash', formatWeekdayShort(null, now), DASH);
-    eq('weekday Date object -> dash', formatWeekdayShort(D(2025, 11, 10), now), DASH);
+    eq('weekday Date object today', formatWeekdayShort(D(2025, 11, 10), now), 'oggi');
+    eq('weekday Date object other', formatWeekdayShort(D(2025, 11, 8), now), 'sab');
+    eq('weekday invalid Date -> dash', formatWeekdayShort(new Date(NaN), now), DASH);
 }
 
 // levelFor
@@ -199,13 +210,69 @@ eq('level undefined thresholds -> 70/90 normal', levelFor(50, undefined, undefin
 eq('level NaN warn falls back to 70', levelFor(70, NaN, 90), 'warning');
 eq('level "x" critical falls back to 90', levelFor(90, 70, 'x'), 'critical');
 eq('level only warn custom', levelFor(60, 55, undefined), 'warning');
-eq('level null threshold coerces to 0', levelFor(1, null, null), 'critical');
+eq('level null thresholds fall back to 70/90', levelFor(80, null, null), 'warning');
+eq('level null thresholds: 95 critical', levelFor(95, null, null), 'critical');
+eq('level null thresholds: 1 normal', levelFor(1, null, null), 'normal');
+eq('level empty-string thresholds fall back', levelFor(80, '', ''), 'warning');
+eq('level Infinity thresholds fall back', levelFor(95, Infinity, Infinity), 'critical');
 eq('level warn > critical: critical wins', levelFor(60, 80, 50), 'critical');
 
 eq('clock padded', formatClock(D(2025, 11, 9, 7, 5)), '07:05');
 eq('clock ms', formatClock(D(2025, 11, 9, 23, 59).getTime()), '23:59');
 eq('clock null -> dash', formatClock(null), '—');
 eq('clock invalid -> dash', formatClock('abc'), '—');
+
+// ---------------- English ----------------
+setLanguage('en');
+{
+    const now = D(2025, 11, 9, 12, 0, 0);
+    const at = ms => new Date(now.getTime() + ms);
+    const ago = ms => new Date(now.getTime() - ms);
+    const S = 1000, M = 60 * S, H = 60 * M, DAY = 24 * H;
+    eq('en countdown null', formatCountdown(null, now), DASH);
+    eq('en countdown past', formatCountdown(at(-M), now), 'soon');
+    eq('en countdown < 1 min', formatCountdown(at(30 * S), now), '< 1 min');
+    eq('en countdown 5 min', formatCountdown(at(5 * M), now), 'in 5 min');
+    eq('en countdown 1 h', formatCountdown(at(H), now), 'in 1 h');
+    eq('en countdown 2 h 15 min', formatCountdown(at(2 * H + 15 * M), now), 'in 2 h 15 min');
+    eq('en countdown 1 d', formatCountdown(at(DAY), now), 'in 1 d');
+    eq('en countdown 1 d 30 min', formatCountdown(at(DAY + 30 * M), now), 'in 1 d 30 min');
+    eq('en countdown 3 d 5 h', formatCountdown(at(3 * DAY + 5 * H), now), 'in 3 d 5 h');
+    eq('en relative null', formatRelativeTime(null, now), 'never');
+    eq('en relative now', formatRelativeTime(ago(0), now), 'now');
+    eq('en relative future -> now', formatRelativeTime(at(5 * M), now), 'now');
+    eq('en relative 5 min', formatRelativeTime(ago(5 * M), now), '5 min ago');
+    eq('en relative 2 h', formatRelativeTime(ago(2 * H), now), '2 h ago');
+    eq('en relative old -> HH:MM', formatRelativeTime(D(2025, 11, 7, 9, 5), now), '09:05');
+    eq('en clock 24h', formatClock(D(2025, 11, 9, 23, 5)), '23:05');
+
+    const today = D(2025, 11, 10, 15, 30);
+    eq('en day Today', formatDayLabel('2025-11-10', today), 'Today');
+    eq('en day Yesterday', formatDayLabel('2025-11-09', today), 'Yesterday');
+    eq('en day older', formatDayLabel('2025-11-08', today), 'Sat 8 Nov');
+    eq('en day Mon', formatDayLabel('2025-11-03', today), 'Mon 3 Nov');
+    eq('en day Date object', formatDayLabel(D(2025, 11, 1, 3, 0), today), 'Sat 1 Nov');
+    eq('en day invalid -> dash', formatDayLabel('abc', today), DASH);
+    eq('en day all months',
+        ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']
+            .map(m => formatDayLabel(`2025-${m}-15`, D(2030, 6, 1)).split(' ')[2]).join(','),
+        'Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec');
+    eq('en day all weekdays',
+        ['02', '03', '04', '05', '06', '07', '08']
+            .map(d => formatDayLabel(`2025-11-${d}`, D(2030, 6, 1)).split(' ')[0]).join(','),
+        'Sun,Mon,Tue,Wed,Thu,Fri,Sat');
+    eq('en weekday today', formatWeekdayShort('2025-11-10', today), 'today');
+    eq('en weekday mon', formatWeekdayShort('2025-11-03', today), 'Mon');
+    eq('en weekday Date', formatWeekdayShort(D(2025, 11, 8), today), 'Sat');
+    eq('en weekday invalid', formatWeekdayShort('2025-02-30', today), DASH);
+
+    eq('en tokens 1500', formatTokens(1500), '1.5K');
+    eq('en tokens 999999', formatTokens(999999), '1M');
+    eq('en percent', formatPercent(42.5), '43%');
+    eq('en level', levelFor(95, 70, 90), 'critical');
+}
+setLanguage('it');
+eq('back to it: Oggi', formatDayLabel('2025-11-10', D(2025, 11, 10)), 'Oggi');
 
 print(`\n${passed} passed, ${failed} failed`);
 System.exit(failed > 0 ? 1 : 0);
