@@ -4,7 +4,7 @@
 import System from 'system';
 
 import {
-    formatTokens, formatPercent, formatCountdown, formatRelativeTime,
+    formatTokens, formatPercent, formatCountdown, formatRelativeTime, formatClock,
     formatDayLabel, levelFor, toDate, dayKey, formatWeekdayShort,
 } from '../lib/format.js';
 
@@ -201,6 +201,11 @@ eq('level "x" critical falls back to 90', levelFor(90, 70, 'x'), 'critical');
 eq('level only warn custom', levelFor(60, 55, undefined), 'warning');
 eq('level null threshold coerces to 0', levelFor(1, null, null), 'critical');
 eq('level warn > critical: critical wins', levelFor(60, 80, 50), 'critical');
+
+eq('clock padded', formatClock(D(2025, 11, 9, 7, 5)), '07:05');
+eq('clock ms', formatClock(D(2025, 11, 9, 23, 59).getTime()), '23:59');
+eq('clock null -> dash', formatClock(null), '—');
+eq('clock invalid -> dash', formatClock('abc'), '—');
 
 print(`\n${passed} passed, ${failed} failed`);
 System.exit(failed > 0 ? 1 : 0);
