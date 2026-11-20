@@ -1,13 +1,23 @@
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
-// Collects signal handler ids and disconnects them all when the window closes.
+// Collects signal handler ids and disconnects them all when the window closes
+// (or on demand: pass no window for a tracker that is disposed by hand, e.g.
+// the one of pages that are rebuilt on a language change).
 export class SignalTracker {
-    constructor(window) {
+    constructor(window = null) {
         this._handlers = []; // [object, id]
-        window.connect('close-request', () => {
+        this._binds = []; // [settings, key... ] GSettings bindings, see bind()
+        window?.connect('close-request', () => {
             this.disconnectAll();
             return false;
         });
+    }
+
+    // settings.bind(key, object, property, flags), unbound by disconnectAll().
+    bind(settings, key, object, property, flags) {
+        settings.bind(key, object, property, flags);
+        this._binds.push([settings, object, property]);
     }
 
     // obj.connect(signal, callback), remembered for disconnectAll().
@@ -21,6 +31,9 @@ export class SignalTracker {
         for (const [obj, id] of this._handlers)
             obj.disconnect(id);
         this._handlers = [];
+        for (const [settings, object, property] of this._binds)
+            Gio.Settings.unbind(object, property);
+        this._binds = [];
     }
 }
 

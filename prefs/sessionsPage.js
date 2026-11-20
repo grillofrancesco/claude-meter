@@ -4,9 +4,11 @@ import Gdk from 'gi://Gdk';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
+import {t, tn, getLocale} from '../lib/i18n.js';
+
 Gio._promisify(Adw.AlertDialog.prototype, 'choose', 'choose_finish');
 
-const MONTHS = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+let barCssInstalled = false;
 
 // Replace the home directory prefix with '~' (only on a path boundary).
 function tildify(path) {
@@ -22,8 +24,13 @@ function formatDate(date) {
     if (!date || Number.isNaN(date.getTime()))
         return '—';
     const pad = n => String(n).padStart(2, '0');
-    return `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}, ` +
-        `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    const month = new Intl.DateTimeFormat(getLocale(), {month: 'short'}).format(date).replace(/\.$/, '');
+    return t('prefs.sessions.date', {
+        day: date.getDate(),
+        month,
+        year: date.getFullYear(),
+        time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+    });
 }
 
 // Group sessions (already sorted, most recent first) by project directory,
@@ -65,21 +72,21 @@ export class SessionsPage {
         this._statusWidget = null;
 
         this.page = new Adw.PreferencesPage({
-            title: 'Conversazioni',
+            title: t('prefs.sessions.title'),
             icon_name: 'user-trash-symbolic',
         });
 
         // Always-visible first group: hosts the header buttons and the
         // loading / empty / error states.
         this._headGroup = new Adw.PreferencesGroup({
-            title: 'Conversazioni',
-            description: 'Le conversazioni eliminate vengono spostate nel cestino.',
+            title: t('prefs.sessions.title'),
+            description: t('prefs.sessions.description'),
         });
         this._headBox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 6, valign: Gtk.Align.CENTER});
 
         this._trashModeButton = new Gtk.Button({
             icon_name: 'user-trash-symbolic',
-            tooltip_text: 'Elimina conversazioni',
+            tooltip_text: t('prefs.sessions.trashMode'),
             valign: Gtk.Align.CENTER,
             css_classes: ['flat'],
         });
@@ -89,7 +96,7 @@ export class SessionsPage {
 
         this._reloadButton = new Gtk.Button({
             icon_name: 'view-refresh-symbolic',
-            tooltip_text: 'Ricarica elenco',
+            tooltip_text: t('prefs.sessions.reload'),
             valign: Gtk.Align.CENTER,
             css_classes: ['flat'],
         });
@@ -106,7 +113,7 @@ export class SessionsPage {
         this._deleteSelectedButton = new Gtk.Button({
             sensitive: false,
             valign: Gtk.Align.CENTER,
-            tooltip_text: 'Elimina le conversazioni selezionate',
+            tooltip_text: t('prefs.sessions.deleteSelected'),
             css_classes: ['destructive-action'],
         });
         const content = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 6});
@@ -123,7 +130,7 @@ export class SessionsPage {
             css_classes: ['dim-label'],
         });
 
-        this._cancelSelectButton = new Gtk.Button({label: 'Annulla', valign: Gtk.Align.CENTER});
+        this._cancelSelectButton = new Gtk.Button({label: t('prefs.sessions.cancel'), valign: Gtk.Align.CENTER});
         this._cancelSelectButton.connect('clicked', () => this._setSelectionMode(false));
 
         this._bar = new Gtk.Box({
@@ -140,7 +147,11 @@ export class SessionsPage {
         for (const w of [this._deleteSelectedButton, this._sizeLabel, this._cancelSelectButton])
             this._bar.append(w);
 
-        // Opaque pill (the stock .osd lets the rows show through).
+        // Opaque pill (the stock .osd lets the rows show through). Installed once
+        // per process: pages are rebuilt when the language changes.
+        if (barCssInstalled)
+            return;
+        barCssInstalled = true;
         const css = new Gtk.CssProvider();
         css.load_from_string('.claude-meter-bar { background-color: @popover_bg_color; ' +
             'color: @popover_fg_color; border-radius: 999px; padding: 6px 8px; ' +
@@ -155,12 +166,31 @@ export class SessionsPage {
         const content = this._window.get_content();
         if (!content || this._overlay)
             return;
+        this._originalContent = content;
         this._window.set_content(null);
         this._overlay = new Gtk.Overlay({child: content});
         this._overlay.add_overlay(this._bar);
         this._window.set_content(this._overlay);
         this._visiblePageId = this._window.connect('notify::visible-page', () => this._syncBar());
         this._syncBar();
+    }
+
+    // Undo installOverlay(): put the original window content back (the bar
+    // widget stays alive with this page object).
+    uninstallOverlay() {
+        if (this._visiblePageId) {
+            this._window.disconnect(this._visiblePageId);
+            this._visiblePageId = 0;
+        }
+        if (!this._overlay)
+            return;
+        const content = this._originalContent;
+        this._overlay.remove_overlay(this._bar);
+        this._overlay.set_child(null);
+        this._window.set_content(null);
+        this._window.set_content(content);
+        this._overlay = null;
+        this._originalContent = null;
     }
 
     _syncBar() {
@@ -213,17 +243,17 @@ export class SessionsPage {
     _showEmpty() {
         this._setStatus(new Adw.StatusPage({
             icon_name: 'user-trash-symbolic',
-            title: 'Nessuna conversazione',
+            title: t('prefs.sessions.empty'),
         }));
     }
 
     _showError() {
         const status = new Adw.StatusPage({
             icon_name: 'dialog-error-symbolic',
-            title: 'Impossibile leggere le conversazioni',
+            title: t('prefs.sessions.error'),
         });
         const retry = new Gtk.Button({
-            label: 'Riprova',
+            label: t('prefs.sessions.retry'),
             halign: Gtk.Align.CENTER,
             css_classes: ['pill', 'suggested-action'],
         });
@@ -322,8 +352,8 @@ export class SessionsPage {
                 const all = eligible.length > 0 && count === eligible.length;
                 info.check.sensitive = eligible.length > 0;
                 info.check.tooltip_text = eligible.length > 0
-                    ? 'Seleziona tutte le conversazioni del progetto'
-                    : 'Tutte le conversazioni sono in corso';
+                    ? t('prefs.sessions.selectAll')
+                    : t('prefs.sessions.allActive');
                 info.check.inconsistent = count > 0 && !all;
                 info.check.active = all;
             }
@@ -406,7 +436,7 @@ export class SessionsPage {
 
     _addGroupHeader(group, projectSessions) {
         const check = new Gtk.CheckButton({
-            tooltip_text: 'Seleziona tutte le conversazioni del progetto',
+            tooltip_text: t('prefs.sessions.selectAll'),
             valign: Gtk.Align.CENTER,
             // Row suffixes sit inside the row padding: line the centers up.
             margin_end: 14,
@@ -437,16 +467,16 @@ export class SessionsPage {
         // markup before setting the text (construct-property order is not guaranteed).
         const row = new Adw.ActionRow({subtitle_lines: 1});
         row.use_markup = false;
-        row.title = session.title ?? 'Senza titolo';
+        row.title = session.title ?? t('prefs.sessions.untitled');
         const size = typeof session.size === 'number' ? GLib.format_size(session.size) : '—';
-        row.subtitle = `Ultima apertura ${formatDate(session.lastUsedAt)} · ${size}`;
+        row.subtitle = t('prefs.sessions.lastOpened', {date: formatDate(session.lastUsedAt), size});
 
         const check = new Gtk.CheckButton({
             valign: Gtk.Align.CENTER,
             sensitive: !session.active,
         });
         if (session.active)
-            check.tooltip_text = 'Conversazione in corso: non può essere eliminata';
+            check.tooltip_text = t('prefs.sessions.activeTooltip');
         check.connect('toggled', () => {
             if (this._syncing)
                 return;
@@ -462,7 +492,7 @@ export class SessionsPage {
 
         if (session.active) {
             row.add_suffix(new Gtk.Label({
-                label: 'In corso',
+                label: t('prefs.sessions.active'),
                 valign: Gtk.Align.CENTER,
                 css_classes: ['dim-label'],
             }));
@@ -502,10 +532,10 @@ export class SessionsPage {
             const result = await this._confirmAndTrash({
                 targets,
                 totalBytes,
-                heading: n === 1 ? 'Eliminare 1 conversazione?' : `Eliminare ${n} conversazioni?`,
-                body: 'Verranno spostati nel cestino:',
+                heading: tn('prefs.sessions.dialog.heading', n),
+                body: t('prefs.sessions.dialog.body'),
                 trash: () => this._store.trashMany(sessions, null),
-                activeMessage: 'Una conversazione è in corso: non può essere eliminata',
+                activeMessage: t('prefs.sessions.toast.active'),
             });
             if (!result)
                 return;
@@ -517,19 +547,20 @@ export class SessionsPage {
                 this._applySelectionMode(false);
                 for (const s of sessions)
                     this._removeRow(s);
-                this._toast(n === 1 ? `1 conversazione spostata nel cestino: ${freed}`
-                    : `${n} conversazioni spostate nel cestino: ${freed}`);
+                this._toast(tn('prefs.sessions.toast.trashed', n, {size: freed}));
             } else if (failed > 0 && result.trashed.length === 0 && skipped === 0) {
-                this._toast('Eliminazione non riuscita');
+                this._toast(t('prefs.sessions.toast.failed'));
             } else {
                 const deleted = n - skipped;
                 let msg = skipped > 0
-                    ? `${deleted} eliminate, ${skipped} in corso non eliminate`
-                    : `${deleted} eliminate`;
-                if (failed > 0)
-                    msg += `; ${failed === 1 ? '1 elemento non eliminato' : `${failed} elementi non eliminati`}`;
+                    ? t('prefs.sessions.toast.partialSkipped', {deleted, skipped})
+                    : t('prefs.sessions.toast.partial', {deleted});
+                if (failed > 0) {
+                    msg = t('prefs.sessions.toast.withFailed',
+                        {message: msg, failed: tn('prefs.sessions.toast.failedItems', failed)});
+                }
                 if (result.trashed.length > 0)
-                    msg += ` (${freed} nel cestino)`;
+                    msg = t('prefs.sessions.toast.withSize', {message: msg, size: freed});
                 this._toast(msg);
                 this._applySelectionMode(false);
                 this.reload();
@@ -548,7 +579,7 @@ export class SessionsPage {
             if (this._closed)
                 return null;
             console.debug(`claude-meter: deletion targets failed: ${e.message}`);
-            this._toast("Impossibile preparare l'eliminazione");
+            this._toast(t('prefs.sessions.toast.prepareFailed'));
             return null;
         }
         return this._closed ? null : targets;
@@ -561,8 +592,8 @@ export class SessionsPage {
         // heading/body are plain text unless *_use_markup is set: no escaping.
         const dialog = new Adw.AlertDialog({heading, body});
         dialog.set_extra_child(this._buildTargetsList(targets, totalBytes));
-        dialog.add_response('cancel', 'Annulla');
-        dialog.add_response('delete', 'Elimina');
+        dialog.add_response('cancel', t('prefs.sessions.dialog.cancel'));
+        dialog.add_response('delete', t('prefs.sessions.dialog.delete'));
         dialog.set_response_appearance('delete', Adw.ResponseAppearance.DESTRUCTIVE);
         dialog.set_default_response('cancel');
         dialog.set_close_response('cancel');
@@ -583,7 +614,7 @@ export class SessionsPage {
                 this.reload();
             } else {
                 console.debug(`claude-meter: trash failed: ${e.message}`);
-                this._toast('Eliminazione non riuscita');
+                this._toast(t('prefs.sessions.toast.failed'));
             }
             return null;
         }
@@ -613,22 +644,17 @@ export class SessionsPage {
 
         if (totalBytes !== null) {
             box.append(new Gtk.Label({
-                label: `Verranno spostati nel cestino ${GLib.format_size(totalBytes)} in totale ` +
-                    '(conversazioni e dati collegati).',
+                label: t('prefs.sessions.dialog.total', {size: GLib.format_size(totalBytes)}),
                 xalign: 0,
                 wrap: true,
                 max_width_chars: 50,
             }));
         }
 
-        const projects = targets.filter(t => t.kind === 'project-dir').length;
+        const projects = targets.filter(target => target.kind === 'project-dir').length;
         if (projects > 0) {
             box.append(new Gtk.Label({
-                label: projects === 1
-                    ? "Verrà eliminata l'intera cartella del progetto in ~/.claude, compresa la " +
-                        'memoria di Claude (memory/)'
-                    : `Verranno eliminate le cartelle di ${projects} progetti in ~/.claude, comprese ` +
-                        'le memorie di Claude (memory/)',
+                label: tn('prefs.sessions.dialog.memoryWarning', projects),
                 xalign: 0,
                 wrap: true,
                 max_width_chars: 50,
