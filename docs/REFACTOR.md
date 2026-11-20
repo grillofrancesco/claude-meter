@@ -1,5 +1,7 @@
 # Piano di refactoring + lingue (IT/EN)
 
+**Stato (2026-11-20): completato** sul branch `refactor`. Documento storico: i contratti aggiornati sono in `AGENTS.md`.
+
 Branch: `refactor` (da `multi-delete`). Ogni fase = uno o più commit; i test passano dopo ogni merge.
 
 ## Obiettivi
