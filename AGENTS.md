@@ -142,6 +142,8 @@ export const ClaudeMeterIndicator = GObject.registerClass({
     destroy()
 });
 // Composition root; pieces in lib/ui/: drawing.js (Cairo helpers), rings.js, bars.js, chart.js (WeekChart),
+// panelBox.js (PanelBox: top-bar layout, highlight mirroring, crabs/"+N"/rings), planSection.js (PlanSection:
+// plan rows, age, reset timer, feeds the rings), tokensSection.js (TokensSection), openPreferences() in menu.js,
 // menu.js (NavItem, MenuPages, rows), crabArea.js (CrabArea: sprites, CrabRow, 8 fps timer), panelSpace.js
 // (PanelSpace: content-height measure + "too tall" notification). Error strings arrive already translated.
 // Top bar: [crab per session (fixed slots, oldest left)] [+N] [highlight box: icon, 5h ring, 7d ring].
