@@ -5,14 +5,14 @@
     <key name="refresh-interval" type="u">
       <default>60</default>
       <range min="30" max="3600"/>
-      <summary>Intervallo di aggiornamento</summary>
-      <description>Ogni quanti secondi aggiornare i dati di utilizzo (30-3600).</description>
+      <summary>Refresh interval</summary>
+      <description>Seconds between refreshes of the local token usage (30-3600).</description>
     </key>
     <key name="plan-refresh-interval" type="u">
       <default>300</default>
       <range min="60" max="3600"/>
-      <summary>Intervallo di aggiornamento del piano</summary>
-      <description>Ogni quanti secondi interrogare Anthropic per le percentuali del piano (60-3600). L'endpoint limita le richieste frequenti.</description>
+      <summary>Plan refresh interval</summary>
+      <description>Seconds between requests to Anthropic for the plan percentages (60-3600). The endpoint rate-limits frequent requests.</description>
     </key>
     <key name="language" type="s">
       <choices>
@@ -30,35 +30,35 @@
         <choice value="traffic"/>
       </choices>
       <default>'accent'</default>
-      <summary>Colore di barre e cerchi</summary>
-      <description>'accent': colore d'accento di sistema; 'traffic': verde/giallo/rosso secondo le soglie.</description>
+      <summary>Bar and ring colour</summary>
+      <description>'accent': system accent colour; 'traffic': green/yellow/red according to the thresholds.</description>
     </key>
     <key name="warn-threshold" type="i">
       <default>70</default>
       <range min="1" max="100"/>
-      <summary>Soglia di avviso</summary>
-      <description>Percentuale di utilizzo oltre la quale l'indicatore diventa giallo.</description>
+      <summary>Warning threshold</summary>
+      <description>Usage percentage above which the indicator turns yellow.</description>
     </key>
     <key name="critical-threshold" type="i">
       <default>90</default>
       <range min="1" max="100"/>
-      <summary>Soglia critica</summary>
-      <description>Percentuale di utilizzo oltre la quale l'indicatore diventa rosso.</description>
+      <summary>Critical threshold</summary>
+      <description>Usage percentage above which the indicator turns red.</description>
     </key>
     <key name="panel-show-five-hour" type="b">
       <default>true</default>
-      <summary>Cerchio sessione (5 h)</summary>
-      <description>Mostra nella barra superiore il cerchio di utilizzo della finestra di 5 ore.</description>
+      <summary>Session ring (5 h)</summary>
+      <description>Show the 5-hour window usage ring in the top bar.</description>
     </key>
     <key name="panel-show-seven-day" type="b">
       <default>true</default>
-      <summary>Cerchio settimanale</summary>
-      <description>Mostra nella barra superiore il cerchio di utilizzo settimanale.</description>
+      <summary>Weekly ring</summary>
+      <description>Show the weekly usage ring in the top bar.</description>
     </key>
     <key name="crabs-enabled" type="b">
       <default>true</default>
-      <summary>Granchi</summary>
-      <description>Mostra nella barra superiore un granchio per ogni sessione di Claude Code aperta.</description>
+      <summary>Clawds</summary>
+      <description>Show a crab (Clawd) in the top bar for each open Claude Code session.</description>
     </key>
     <key name="panel-empty" type="s">
       <choices>
@@ -66,14 +66,14 @@
         <choice value="icon"/>
       </choices>
       <default>'crab'</default>
-      <summary>Senza sessioni aperte</summary>
-      <description>'crab': un granchio che dorme accanto ai cerchi; 'icon': l'icona dell'estensione.</description>
+      <summary>With no open sessions</summary>
+      <description>'crab': a sleeping crab next to the rings; 'icon': the extension icon.</description>
     </key>
     <key name="crab-max" type="u">
       <default>3</default>
       <range min="1" max="10"/>
-      <summary>Sessioni mostrate</summary>
-      <description>Numero massimo di granchi mostrati; le altre sessioni sono contate in "+N".</description>
+      <summary>Sessions shown</summary>
+      <description>Maximum number of crabs shown; the other sessions are counted in "+N".</description>
     </key>
     <key name="crab-overflow" type="s">
       <choices>
@@ -81,14 +81,14 @@
         <choice value="crop"/>
       </choices>
       <default>'overflow'</default>
-      <summary>Animazioni troppo alte</summary>
-      <description>Cosa fare se il pannello ha meno spazio dell'altezza delle animazioni: 'overflow' sborda, 'crop' taglia la parte superiore.</description>
+      <summary>Animations too tall</summary>
+      <description>What to do when the panel has less room than the animations need: 'overflow' draws them above the box, 'crop' cuts the top rows.</description>
     </key>
     <key name="panel-content-height" type="u">
       <default>0</default>
       <range min="0" max="200"/>
-      <summary>Altezza disponibile nel pannello</summary>
-      <description>Pixel disponibili per i granchi nella barra superiore, misurati e scritti dall'estensione (0 = mai misurato).</description>
+      <summary>Available panel height</summary>
+      <description>Pixels available for the crabs in the top bar, measured and written by the extension (0 = not measured yet).</description>
     </key>
     <key name="prefs-start-page" type="s">
       <choices>
@@ -96,8 +96,8 @@
         <choice value="sessions"/>
       </choices>
       <default>'general'</default>
-      <summary>Pagina iniziale delle preferenze</summary>
-      <description>Pagina da mostrare alla prossima apertura delle preferenze ('general' | 'sessions'). Viene riportata a 'general' dopo l'uso.</description>
+      <summary>Preferences start page</summary>
+      <description>Page to show the next time the preferences open ('general' | 'sessions'). Reset to 'general' after use.</description>
     </key>
   </schema>
 </schemalist>

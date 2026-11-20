@@ -10,6 +10,7 @@ import {TokenParser} from './lib/tokenParser.js';
 import {UsageManager} from './lib/usageManager.js';
 import {DataManager} from './lib/dataManager.js';
 import {SessionMonitor} from './lib/sessionMonitor.js';
+import {t, setLanguage, resolveLanguage} from './lib/i18n.js';
 import {isPlanDue, planExpired, mergeReason, backoffDelay, nextResetFetchDelayS} from './lib/planScheduler.js';
 
 // The usage endpoint rate-limits aggressively (HTTP 429): plan requests are
@@ -23,15 +24,7 @@ const RESUME_DELAY_S = 5;
 const SESSION_POLL_S = 5;
 const SESSION_DEBOUNCE_MS = 250;
 
-const PLAN_ERRORS = {
-    'no-credentials': 'Credenziali Claude Code non trovate',
-    'expired': 'Credenziali scadute: apri Claude Code per rinnovarle',
-    'unauthorized': 'Accesso negato da Anthropic',
-    'rate-limited': 'Troppe richieste ad Anthropic',
-    'network': 'Anthropic non raggiungibile',
-    'invalid-response': 'Risposta non valida da Anthropic',
-};
-
+// Error strings are translated when shown (see _planErrorText).
 function isCancelled(e) {
     return e instanceof GLib.Error && e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED);
 }
@@ -40,6 +33,14 @@ export default class ClaudeMeterExtension extends Extension {
     enable() {
         this._settings = this.getSettings();
         this._cancellable = new Gio.Cancellable();
+
+        setLanguage(resolveLanguage(this._settings.get_string('language')));
+        this._languageId = this._settings.connect('changed::language', () => {
+            setLanguage(resolveLanguage(this._settings.get_string('language')));
+            this._retranslateErrors();
+        });
+        this._planErrorCode = null;
+        this._tokensError = false;
 
         this._parser = new TokenParser();
         this._usage = new UsageManager();
@@ -107,6 +108,11 @@ export default class ClaudeMeterExtension extends Extension {
             this._sleepId = 0;
         }
         this._loginManager = null;
+
+        if (this._languageId) {
+            this._settings.disconnect(this._languageId);
+            this._languageId = 0;
+        }
 
         if (this._settingsChangedId) {
             this._settings.disconnect(this._settingsChangedId);
@@ -223,7 +229,8 @@ export default class ClaudeMeterExtension extends Extension {
             this._scheduleResetFetch();
         }
         if (Date.now() < this._planBackoffUntil) {
-            this._indicator.setPlanUsage(null, PLAN_ERRORS['rate-limited']);
+            this._planErrorCode = 'rate-limited';
+            this._indicator.setPlanUsage(null, this._planErrorText());
             this._indicator.setPlanRetryAt(new Date(this._planBackoffUntil));
         }
     }
@@ -342,6 +349,7 @@ export default class ClaudeMeterExtension extends Extension {
             this._lastPlanSuccess = Date.now();
             this._planUsage = usage;
             this._scheduleResetFetch();
+            this._planErrorCode = null;
             this._indicator.setPlanUsage(usage, null);
             this._indicator.setPlanRetryAt(null);
             this._data.setPlan({usage, backoffUntil: 0, rateLimitHits: 0});
@@ -359,7 +367,8 @@ export default class ClaudeMeterExtension extends Extension {
                 this._saveState();
             }
             console.debug(`Claude Meter: plan usage unavailable (${code})`);
-            this._indicator.setPlanUsage(null, PLAN_ERRORS[code] ?? PLAN_ERRORS.network);
+            this._planErrorCode = code;
+            this._indicator.setPlanUsage(null, this._planErrorText());
             this._indicator.setPlanRetryAt(code === 'rate-limited' ? new Date(this._planBackoffUntil) : null);
             return false;
         }
@@ -384,13 +393,36 @@ export default class ClaudeMeterExtension extends Extension {
             if (isCancelled(e) || cancellable.is_cancelled())
                 return false;
             console.debug(`Claude Meter: token scan failed: ${e.message}`);
-            this._renderTokens('Sessioni Claude Code non leggibili');
+            this._renderTokens(true);
             return false;
         }
     }
 
-    _renderTokens(error) {
-        this._indicator.setTokens(error ? null : this._data.getToday(), error);
+    _planErrorText() {
+        const code = this._planErrorCode;
+        if (!code)
+            return null;
+        const key = `errors.plan.${code}`;
+        const text = t(key);
+        return text === key ? t('errors.plan.network') : text;
+    }
+
+    // Language switched: re-send the errors currently shown, translated.
+    // No fetches: successful values are formatted by the indicator itself.
+    _retranslateErrors() {
+        if (!this._indicator)
+            return;
+        if (this._planErrorCode)
+            this._indicator.setPlanUsage(null, this._planErrorText());
+        if (this._tokensError && this._data)
+            this._renderTokens(true);
+    }
+
+    // `failed`: true when the token scan failed (the error text is translated here).
+    _renderTokens(failed) {
+        this._tokensError = !!failed;
+        const error = failed ? t('errors.tokens.unreadable') : null;
+        this._indicator.setTokens(failed ? null : this._data.getToday(), error);
         const history = this._data.getHistory(30);
         const json = JSON.stringify(history);
         if (json !== this._lastHistoryJson) {
