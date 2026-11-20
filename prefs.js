@@ -90,21 +90,7 @@ class SessionsPage {
         });
         this._trashModeButton.connect('clicked', () => this._setSelectionMode(true));
 
-        this._deleteSelectedButton = new Gtk.Button({
-            label: 'Elimina (0)',
-            sensitive: false,
-            visible: false,
-            valign: Gtk.Align.CENTER,
-            css_classes: ['destructive-action'],
-        });
-        this._deleteSelectedButton.connect('clicked', () => this._onTrashSelected());
-
-        this._cancelSelectButton = new Gtk.Button({
-            label: 'Annulla',
-            visible: false,
-            valign: Gtk.Align.CENTER,
-        });
-        this._cancelSelectButton.connect('clicked', () => this._setSelectionMode(false));
+        this._buildBar();
 
         this._reloadButton = new Gtk.Button({
             icon_name: 'view-refresh-symbolic',
@@ -114,10 +100,81 @@ class SessionsPage {
         });
         this._reloadButton.connect('clicked', () => this.reload());
 
-        for (const w of [this._trashModeButton, this._deleteSelectedButton, this._cancelSelectButton, this._reloadButton])
+        for (const w of [this._trashModeButton, this._reloadButton])
             this._headBox.append(w);
         this._headGroup.set_header_suffix(this._headBox);
         this.page.add(this._headGroup);
+    }
+
+    // Floating bar shown at the bottom of the window while the selection mode is on.
+    _buildBar() {
+        this._deleteSelectedButton = new Gtk.Button({
+            sensitive: false,
+            valign: Gtk.Align.CENTER,
+            tooltip_text: 'Elimina le conversazioni selezionate',
+            css_classes: ['destructive-action'],
+        });
+        const content = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 6});
+        content.append(new Gtk.Image({icon_name: 'user-trash-symbolic'}));
+        this._deleteCountLabel = new Gtk.Label({label: '0'});
+        content.append(this._deleteCountLabel);
+        this._deleteSelectedButton.set_child(content);
+        this._deleteSelectedButton.connect('clicked', () => this._onTrashSelected());
+
+        this._sizeLabel = new Gtk.Label({
+            label: '—',
+            valign: Gtk.Align.CENTER,
+            width_chars: 8,
+            css_classes: ['dim-label'],
+        });
+
+        this._cancelSelectButton = new Gtk.Button({label: 'Annulla', valign: Gtk.Align.CENTER});
+        this._cancelSelectButton.connect('clicked', () => this._setSelectionMode(false));
+
+        this._bar = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 12,
+            halign: Gtk.Align.CENTER,
+            valign: Gtk.Align.END,
+            margin_bottom: 12,
+            margin_start: 12,
+            margin_end: 12,
+            visible: false,
+            css_classes: ['toolbar', 'claude-meter-bar'],
+        });
+        for (const w of [this._deleteSelectedButton, this._sizeLabel, this._cancelSelectButton])
+            this._bar.append(w);
+
+        // Opaque pill (the stock .osd lets the rows show through).
+        const css = new Gtk.CssProvider();
+        css.load_from_string('.claude-meter-bar { background-color: @popover_bg_color; ' +
+            'color: @popover_fg_color; border-radius: 999px; padding: 6px 8px; ' +
+            'box-shadow: 0 2px 10px alpha(black, 0.45), 0 0 0 1px alpha(@borders, 0.6); }');
+        Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+    }
+
+    // Adw.PreferencesWindow only accepts pages: wrap its content in an overlay
+    // that hosts the floating bar. Call once, after the page is added.
+    installOverlay() {
+        const content = this._window.get_content();
+        if (!content || this._overlay)
+            return;
+        this._window.set_content(null);
+        this._overlay = new Gtk.Overlay({child: content});
+        this._overlay.add_overlay(this._bar);
+        this._window.set_content(this._overlay);
+        this._visiblePageId = this._window.connect('notify::visible-page', () => this._syncBar());
+        this._syncBar();
+    }
+
+    _syncBar() {
+        const show = this._selectionMode && this._window.get_visible_page() === this.page;
+        this._bar.visible = show;
+        // Keep the last row reachable: spare room under the last group while the bar is up.
+        this._projectGroups.forEach((g, i) => {
+            g.margin_bottom = show && i === this._projectGroups.length - 1 ? 72 : 0;
+        });
     }
 
     // Cancel pending work; call when the window closes.
@@ -127,6 +184,10 @@ class SessionsPage {
         this._cancellable?.cancel();
         this._cancellable = null;
         this._removeEscController();
+        if (this._visiblePageId) {
+            this._window.disconnect(this._visiblePageId);
+            this._visiblePageId = 0;
+        }
     }
 
     _setStatus(widget) {
@@ -275,18 +336,27 @@ class SessionsPage {
             this._syncing = false;
         }
         const n = this._selected.size;
-        const on = this._selectionMode;
-        this._trashModeButton.visible = !on;
-        this._deleteSelectedButton.visible = on;
-        this._cancelSelectButton.visible = on;
-        this._deleteSelectedButton.label = `Elimina (${n})`;
-        this._deleteSelectedButton.sensitive = n > 0;
+        this._trashModeButton.visible = !this._selectionMode;
+        this._deleteCountLabel.label = String(n);
+        this._deleteSelectedButton.sensitive = n > 0 && !this._busy;
+        this._cancelSelectButton.sensitive = !this._busy;
+        let known = 0;
+        let any = false;
+        for (const s of this._selected) {
+            if (typeof s.size === 'number') {
+                known += s.size;
+                any = true;
+            }
+        }
+        this._sizeLabel.label = any ? GLib.format_size(known) : '—';
+        this._syncBar();
     }
 
     // Disable the controls while an operation runs (the page stays scrollable).
     _setBusy(busy) {
         this._busy = busy;
         this._headBox.sensitive = !busy;
+        this._bar.sensitive = !busy;
         for (const group of this._projectGroups)
             group.sensitive = !busy;
     }
@@ -343,6 +413,8 @@ class SessionsPage {
         const check = new Gtk.CheckButton({
             tooltip_text: 'Seleziona tutte le conversazioni del progetto',
             valign: Gtk.Align.CENTER,
+            // Row suffixes sit inside the row padding: line the centers up.
+            margin_end: 14,
         });
         const info = {sessions: projectSessions, check, hover: false};
         check.connect('toggled', () => {
@@ -371,8 +443,8 @@ class SessionsPage {
         const row = new Adw.ActionRow({subtitle_lines: 1});
         row.use_markup = false;
         row.title = session.title ?? 'Senza titolo';
-        row.subtitle = `Ultima apertura ${formatDate(session.lastUsedAt)} · ` +
-            `Creata ${formatDate(session.createdAt)}`;
+        const size = typeof session.size === 'number' ? GLib.format_size(session.size) : '—';
+        row.subtitle = `Ultima apertura ${formatDate(session.lastUsedAt)} · ${size}`;
 
         const check = new Gtk.CheckButton({
             valign: Gtk.Align.CENTER,
@@ -426,8 +498,15 @@ class SessionsPage {
             if (!targets)
                 return;
             const n = sessions.length;
+            let totalBytes = null;
+            try {
+                totalBytes = await this._store.getTargetsSize(targets, this._cancellable);
+            } catch (e) {
+                console.debug(`claude-meter: size failed: ${e.message}`);
+            }
             const result = await this._confirmAndTrash({
                 targets,
+                totalBytes,
                 heading: n === 1 ? 'Eliminare 1 conversazione?' : `Eliminare ${n} conversazioni?`,
                 body: 'Verranno spostati nel cestino:',
                 trash: () => this._store.trashMany(sessions, null),
@@ -438,12 +517,13 @@ class SessionsPage {
 
             const skipped = result.skippedActive?.length ?? 0;
             const failed = result.failed.length;
+            const freed = GLib.format_size(result.trashedBytes ?? 0);
             if (failed === 0 && skipped === 0) {
                 this._applySelectionMode(false);
                 for (const s of sessions)
                     this._removeRow(s);
-                this._toast(n === 1 ? '1 conversazione spostata nel cestino'
-                    : `${n} conversazioni spostate nel cestino`);
+                this._toast(n === 1 ? `1 conversazione spostata nel cestino: ${freed}`
+                    : `${n} conversazioni spostate nel cestino: ${freed}`);
             } else if (failed > 0 && result.trashed.length === 0 && skipped === 0) {
                 this._toast('Eliminazione non riuscita');
             } else {
@@ -453,6 +533,8 @@ class SessionsPage {
                     : `${deleted} eliminate`;
                 if (failed > 0)
                     msg += `; ${failed === 1 ? '1 elemento non eliminato' : `${failed} elementi non eliminati`}`;
+                if (result.trashed.length > 0)
+                    msg += ` (${freed} nel cestino)`;
                 this._toast(msg);
                 this._applySelectionMode(false);
                 this.reload();
@@ -480,10 +562,10 @@ class SessionsPage {
     // Confirm with the list of paths, run
     // `trash()` and map errors. Returns the store result, or null when
     // cancelled / failed / refused because something became active.
-    async _confirmAndTrash({targets, heading, body, trash, activeMessage}) {
+    async _confirmAndTrash({targets, totalBytes = null, heading, body, trash, activeMessage}) {
         // heading/body are plain text unless *_use_markup is set: no escaping.
         const dialog = new Adw.AlertDialog({heading, body});
-        dialog.set_extra_child(this._buildTargetsList(targets));
+        dialog.set_extra_child(this._buildTargetsList(targets, totalBytes));
         dialog.add_response('cancel', 'Annulla');
         dialog.add_response('delete', 'Elimina');
         dialog.set_response_appearance('delete', Adw.ResponseAppearance.DESTRUCTIVE);
@@ -512,7 +594,7 @@ class SessionsPage {
         }
     }
 
-    _buildTargetsList(targets) {
+    _buildTargetsList(targets, totalBytes = null) {
         const box = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, spacing: 12});
 
         const list = new Gtk.Box({orientation: Gtk.Orientation.VERTICAL, spacing: 4});
@@ -533,6 +615,16 @@ class SessionsPage {
             propagate_natural_height: true,
             max_content_height: 200,
         }));
+
+        if (totalBytes !== null) {
+            box.append(new Gtk.Label({
+                label: `Verranno spostati nel cestino ${GLib.format_size(totalBytes)} in totale ` +
+                    '(conversazioni e dati collegati).',
+                xalign: 0,
+                wrap: true,
+                max_width_chars: 50,
+            }));
+        }
 
         const projects = targets.filter(t => t.kind === 'project-dir').length;
         if (projects > 0) {
@@ -824,6 +916,7 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
 
         const sessionsPage = new SessionsPage(window, new SessionStore());
         window.add(sessionsPage.page);
+        sessionsPage.installOverlay();
         sessionsPage.reload();
 
         // Honour the requested start page, then reset the key. Resetting from

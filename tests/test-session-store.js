@@ -597,10 +597,43 @@ test('trashMany: invalid session -> throws, nothing trashed', async () => {
     assertEqual(calls.length, 0, 'no calls');
 });
 
+test('list: Session.size is the .jsonl size in bytes', async () => {
+    const env = makeEnv();
+    addConv(env, 'p', 'a', ['x'.repeat(1234)]);
+    writeFile(join(env.claude, 'projects', 'p', 'a', 'sub.bin'), 'y'.repeat(999));
+    assertEqual((await listOne(env, 'a')).size, 1234, 'size');
+});
+
+test('getTargetsSize: nested dirs, missing path, symlink not followed', async () => {
+    const env = makeEnv();
+    const d = join(env.claude, 'data');
+    writeFile(join(d, 'a.txt'), 'x'.repeat(100));
+    writeFile(join(d, 'n', 'm', 'b.txt'), 'x'.repeat(50));
+    writeFile(join(env.claude, 'big.bin'), 'x'.repeat(100000));
+    Gio.File.new_for_path(join(d, 'link')).make_symbolic_link(join(env.claude, 'big.bin'), null);
+    assertEqual(await env.store.getTargetsSize([{path: d, kind: 'x'}]), 150, 'dir');
+    assertEqual(await env.store.getTargetsSize([
+        {path: d, kind: 'x'}, {path: join(env.claude, 'missing'), kind: 'x'},
+        {path: join(env.claude, 'big.bin'), kind: 'x'}]), 100150, 'sum with missing');
+    assertEqual(await env.store.getTargetsSize([]), 0, 'empty');
+});
+
+test('trashMany: trashedBytes sums trashed targets, failed excluded', async () => {
+    const env = makeEnv();
+    addConv(env, 'p', 'a', ['x'.repeat(10)]);
+    addConv(env, 'p', 'b', ['x'.repeat(20)]);
+    addConv(env, 'p', 'c', ['x'.repeat(40)]);
+    writeFile(join(env.claude, 'file-history', 'b', 'h'), 'x'.repeat(5));
+    const p = join(env.claude, 'projects', 'p');
+    fakeTrash(env, join(p, 'a.jsonl'));
+    const res = await env.store.trashMany([sessionFor(env, 'p', 'a'), sessionFor(env, 'p', 'b')]);
+    assertEqual(res.trashedBytes, 25, 'only b + its history');
+});
+
 test('trashMany: empty list is a no-op', async () => {
     const env = makeEnv();
     const calls = fakeTrash(env);
-    assertJson(await env.store.trashMany([]), {trashed: [], failed: [], skippedActive: []}, 'result');
+    assertJson(await env.store.trashMany([]), {trashed: [], failed: [], skippedActive: [], trashedBytes: 0}, 'result');
     assertEqual(calls.length, 0, 'no calls');
 });
 
