@@ -19,18 +19,7 @@ function bindLanguage(settings, widget, tracker) {
     });
 }
 
-// Compact drop-down for the window header bar.
-export function createLanguageDropDown(settings, tracker) {
-    const dropDown = new Gtk.DropDown({
-        model: languageModel(),
-        valign: Gtk.Align.CENTER,
-        tooltip_text: t('prefs.language.tooltip'),
-    });
-    bindLanguage(settings, dropDown, tracker);
-    return dropDown;
-}
-
-// Fallback when no header bar is found: a row at the top of "Aspetto".
+// First row of "Aspetto" (the first entry of the general page).
 export function createLanguageComboRow(settings, tracker) {
     const row = new Adw.ComboRow({
         title: t('prefs.language.rowTitle'),

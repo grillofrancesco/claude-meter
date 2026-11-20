@@ -10,7 +10,7 @@ import {createLanguageComboRow} from './languageSelector.js';
 // Builds the "Claude Meter" page. `tracker` is a SignalTracker (settings
 // handlers are disconnected when the window closes). Returns the page and the
 // spin rows (for the initial-focus fix).
-export function buildGeneralPage(settings, tracker, {languageRow = false} = {}) {
+export function buildGeneralPage(settings, tracker) {
     const page = new Adw.PreferencesPage({
         title: t('prefs.general.title'),
         icon_name: 'claude-meter-brush-symbolic',
@@ -138,8 +138,8 @@ export function buildGeneralPage(settings, tracker, {languageRow = false} = {}) 
 
     const lookGroup = new Adw.PreferencesGroup({title: t('prefs.look.title')});
 
-    if (languageRow)
-        lookGroup.add(createLanguageComboRow(settings, tracker));
+    // Language: first entry of the preferences.
+    lookGroup.add(createLanguageComboRow(settings, tracker));
 
     const colorRow = new Adw.ComboRow({
         title: t('prefs.look.color.title'),

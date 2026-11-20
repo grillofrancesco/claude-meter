@@ -10,7 +10,7 @@ import {
 import {SessionsPage} from './sessionsPage.js';
 import {buildGeneralPage} from './generalPage.js';
 import {SignalTracker, clearInitialSpinFocus} from './widgets.js';
-import {createLanguageDropDown, findMainHeaderBar} from './languageSelector.js';
+import {findMainHeaderBar} from './languageSelector.js';
 
 // Brand name shown as the window title: never translated.
 const WINDOW_TITLE = 'Claude Meter';
@@ -60,7 +60,7 @@ function addHeaderTitle(window, headerBar, tracker) {
 }
 
 // Fills an Adw.PreferencesWindow: general page + conversations page, a language
-// selector in the header bar, and a live rebuild of both pages when `language`
+// row in the general page, and a live rebuild of both pages when `language`
 // changes. Kept apart from prefs.js (which needs the shell's ExtensionPreferences)
 // so that it can be exercised from plain gjs.
 // Returns {rebuild, headerBar, generalPage, sessionsPage} (for tests).
@@ -71,20 +71,18 @@ export function fillWindow(window, settings, {store = null, iconsDir = null} = {
     // Few options: the search button would only push the title aside.
     window.search_enabled = false;
 
-    // Window lifetime: language selector, language listener, settings handlers.
+    // Window lifetime: language listener, settings handlers.
     const windowTracker = new SignalTracker(window);
     // Pages lifetime: recreated on every rebuild.
     let pageTracker = null;
     let general = null;
     let sessionsPage = null;
     let headerBar = null;
-    let selector = null;
     let closed = false;
 
     const build = () => {
         pageTracker = new SignalTracker();
-        // Without a header bar the selector is a row at the top of "Aspetto".
-        general = buildGeneralPage(settings, pageTracker, {languageRow: !selector});
+        general = buildGeneralPage(settings, pageTracker);
         window.add(general.page);
 
         sessionsPage = new SessionsPage(window, store ?? new SessionStore());
@@ -119,32 +117,28 @@ export function fillWindow(window, settings, {store = null, iconsDir = null} = {
         return true;
     };
 
-    // Language selector: pack_end on the main header bar of the window.
-    const attachSelector = () => {
-        if (selector || closed)
-            return !!selector;
+    // Title at the start of the main header bar of the window.
+    const attachTitle = () => {
+        if (headerBar || closed)
+            return !!headerBar;
         headerBar = findMainHeaderBar(window);
         if (!headerBar)
             return false;
-        selector = createLanguageDropDown(settings, windowTracker);
-        headerBar.pack_end(selector);
         addHeaderTitle(window, headerBar, windowTracker);
         return true;
     };
 
-    attachSelector();
+    attachTitle();
     build();
     if (consumeStartPage())
         window.set_visible_page(sessionsPage.page);
 
-    // The header bar may only exist once the window is realized: retry when
-    // mapped, then swap the fallback row for the header selector.
-    if (!selector) {
+    // The header bar may only exist once the window is realized: retry when mapped.
+    if (!headerBar) {
         const mapId = window.connect('map', () => {
             window.disconnect(mapId);
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                if (!closed && attachSelector())
-                    rebuild();
+                attachTitle();
                 return GLib.SOURCE_REMOVE;
             });
         });
