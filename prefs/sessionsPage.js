@@ -33,6 +33,26 @@ function formatDate(date) {
     });
 }
 
+// Short project name for a group title: the last folder of the path ('~' for
+// the home directory itself).
+function projectName(path) {
+    if (tildify(path) === '~')
+        return '~';
+    return GLib.path_get_basename(path.replace(/\/+$/, '')) || path;
+}
+
+// The Gtk.Label showing an Adw.PreferencesGroup title (no public accessor).
+function findTitleLabel(widget, text) {
+    if (widget instanceof Gtk.Label && widget.label === text)
+        return widget;
+    for (let child = widget.get_first_child(); child; child = child.get_next_sibling()) {
+        const found = findTitleLabel(child, text);
+        if (found)
+            return found;
+    }
+    return null;
+}
+
 // Group sessions (already sorted, most recent first) by project directory,
 // keeping the order of first appearance = most recent session of each project.
 function groupByProject(sessions) {
@@ -317,6 +337,17 @@ export class SessionsPage {
         this._syncSelectionUi();
     }
 
+    // After the user (un)checks a row or a project: unchecking the last selected
+    // conversation leaves the mode (entering with the trash button, with nothing
+    // selected yet, keeps it open until something is selected or Annulla/Esc).
+    _afterUserToggle(checked) {
+        if (!checked && this._selectionMode && this._selected.size === 0) {
+            this._applySelectionMode(false);
+            return;
+        }
+        this._syncSelectionUi();
+    }
+
     // Esc leaves selection mode. The controller exists only while the mode is
     // on, and lets Esc through while an operation/dialog is in progress.
     _addEscController() {
@@ -396,11 +427,18 @@ export class SessionsPage {
 
         for (const projectSessions of groupByProject(sessions)) {
             const projectPath = projectSessions.find(s => s.projectPath)?.projectPath ?? null;
+            const name = projectPath ? projectName(projectPath) : '—';
             const group = new Adw.PreferencesGroup({
-                // Group titles are Pango markup: escape the path.
-                title: GLib.markup_escape_text(projectPath ? tildify(projectPath) : '—', -1),
+                // Group titles are Pango markup: escape the name.
+                title: GLib.markup_escape_text(name, -1),
                 sensitive: !this._busy,
             });
+            // Only the last folder is shown; the full path appears on hover.
+            if (projectPath) {
+                const label = findTitleLabel(group, name);
+                if (label)
+                    label.tooltip_text = tildify(projectPath);
+            }
             this._addGroupHeader(group, projectSessions);
             this.page.add(group);
             this._projectGroups.push(group);
@@ -454,7 +492,7 @@ export class SessionsPage {
                 else
                     this._selected.delete(s);
             }
-            this._syncSelectionUi();
+            this._afterUserToggle(checked);
         });
         group.set_header_suffix(check);
         this._groups.set(group, info);
@@ -487,7 +525,7 @@ export class SessionsPage {
                 this._selected.add(session);
             else
                 this._selected.delete(session);
-            this._syncSelectionUi();
+            this._afterUserToggle(checked);
         });
 
         if (session.active) {
