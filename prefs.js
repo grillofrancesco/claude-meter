@@ -582,8 +582,9 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         });
         window.add(page);
 
+        // Groups are created in code order but added to the page at the end of this
+        // method, in display order (see the page.add loop after thresholdGroup).
         const refreshGroup = new Adw.PreferencesGroup({title: 'Aggiornamento'});
-        page.add(refreshGroup);
 
         const refreshRow = new Adw.SpinRow({
             title: 'Tempo tra lettura dei file locali',
@@ -619,7 +620,6 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
             title: 'Barra superiore',
             description: 'Se non è attivo nulla viene mostrata l\'icona.',
         });
-        page.add(panelGroup);
 
         const fiveHourRow = new Adw.SwitchRow({title: 'Cerchio sessione (5 h)'});
         panelGroup.add(fiveHourRow);
@@ -698,27 +698,39 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
             model: Gtk.StringList.new(['Clawd che dorme', 'Icona']),
         });
         panelGroup.add(emptyRow);
+        // With Clawds off the panel always shows the icon: the row is muted and shows
+        // "Icona", but the saved choice is kept and comes back when Clawds are re-enabled.
+        let syncingEmpty = false;
         const syncEmptyRow = () => {
-            const index = emptyModes.indexOf(settings.get_string('panel-empty'));
+            const enabled = settings.get_boolean('crabs-enabled');
+            const mode = enabled ? settings.get_string('panel-empty') : 'icon';
+            const index = emptyModes.indexOf(mode);
+            syncingEmpty = true;
             emptyRow.selected = index < 0 ? 0 : index;
+            syncingEmpty = false;
+            emptyRow.sensitive = enabled;
+            emptyRow.tooltip_text = enabled ? null : 'Con i Clawds disattivati la barra mostra sempre l\'icona';
         };
         syncEmptyRow();
         emptyRow.connect('notify::selected', () => {
+            if (syncingEmpty || !settings.get_boolean('crabs-enabled'))
+                return;
             const mode = emptyModes[emptyRow.selected] ?? 'crab';
             if (settings.get_string('panel-empty') !== mode)
                 settings.set_string('panel-empty', mode);
         });
         const emptyChangedId = settings.connect('changed::panel-empty', syncEmptyRow);
+        const emptyEnabledId = settings.connect('changed::crabs-enabled', syncEmptyRow);
         window.connect('close-request', () => {
             crabSyncIds.forEach(id => settings.disconnect(id));
             settings.disconnect(overflowChangedId);
             settings.disconnect(heightChangedId);
             settings.disconnect(emptyChangedId);
+            settings.disconnect(emptyEnabledId);
             return false;
         });
 
         const lookGroup = new Adw.PreferencesGroup({title: 'Aspetto'});
-        page.add(lookGroup);
 
         const modes = ['accent', 'traffic'];
         const colorRow = new Adw.ComboRow({
@@ -749,7 +761,9 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
             title: 'Soglie colori (solo con semaforo)',
             description: "Percentuale di utilizzo oltre la quale l'indicatore cambia colore.",
         });
-        page.add(thresholdGroup);
+        // Display order of the groups on the page.
+        for (const group of [lookGroup, thresholdGroup, panelGroup, refreshGroup])
+            page.add(group);
 
         const warnRow = new Adw.SpinRow({
             title: 'Soglia di avviso (giallo)',
