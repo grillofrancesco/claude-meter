@@ -841,7 +841,7 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
                 return;
             window.disconnect(focusId);
             GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, () => {
-                for (const row of [refreshRow, planRow, crabMaxRow, widthRow])
+                for (const row of [refreshRow, planRow, crabMaxRow])
                     row.set_position(-1); // clears the select-on-focus selection
                 window.set_focus(null);
                 return GLib.SOURCE_REMOVE;

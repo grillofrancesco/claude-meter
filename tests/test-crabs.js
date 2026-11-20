@@ -1,7 +1,7 @@
 // Tests for lib/crabs.js (pure module): gjs -m tests/test-crabs.js
 import System from 'system';
 
-import {CrabRow, PLACEHOLDER_ID, compileAnimations, COMPILED_ANIMATIONS, COMPILED_GRID, FPS, SPRITE_W, CRAB_GAP, CRAB_SLOT, panelWidths, splitSessions, RING_SIZE, PANEL_SPACING, MORE_WIDTH, HIGHLIGHT_PAD, SPRITE_H, PIXEL}
+import {CrabRow, PLACEHOLDER_ID, compileAnimations, COMPILED_ANIMATIONS, COMPILED_GRID, FPS, SPRITE_W, CRAB_GAP, CRAB_SLOT, panelWidths, splitSessions, RING_SIZE, PANEL_SPACING, MORE_WIDTH, HIGHLIGHT_PAD, HIGHLIGHT_BORDER, SPRITE_H, PIXEL}
     from '../lib/crabs.js';
 import {ANIMATIONS, PALETTE, STATES, GRID_W, GRID_H, SPRITE_HEIGHT} from '../lib/sprites.js';
 
@@ -153,7 +153,7 @@ function testSlots() {
     check('panelWidths vuoto = 0', panelWidths().total === 0 && panelWidths().crabs === 0);
     check('panelWidths 0..10 granchi = widthFor', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every(n =>
         panelWidths({crabs: n}).crabs === CrabRow.widthFor(n) && panelWidths({crabs: n}).total === CrabRow.widthFor(n)));
-    const HP = 2 * HIGHLIGHT_PAD;
+    const HP = 2 * (HIGHLIGHT_PAD + HIGHLIGHT_BORDER);
     check('panelWidths solo anelli', panelWidths({rings: 1}).total === RING_SIZE + HP &&
         panelWidths({rings: 2}).total === 2 * RING_SIZE + PANEL_SPACING + HP);
     check('panelWidths granchi + anelli', panelWidths({crabs: 3, rings: 2}).total ===

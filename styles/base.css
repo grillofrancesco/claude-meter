@@ -131,9 +131,13 @@
 }
 
 .claude-meter-highlight {
+    /* Same technique as the stock panel button: full-height box, 3 px transparent border and an
+     * inset box-shadow as background, so the geometry never changes (also during the fade). */
+    border: 3px solid transparent; /* HIGHLIGHT_BORDER in lib/crabs.js */
     border-radius: 999px;
-    padding: 0 3px; /* HIGHLIGHT_PAD in lib/crabs.js */
+    padding: 0 5px; /* HIGHLIGHT_PAD in lib/crabs.js: same as the vertical gap, (26 - 16) / 2 */
     spacing: 4px; /* PANEL_SPACING in lib/crabs.js */
+    box-shadow: inset 0 0 0 100px transparent;
     transition-duration: 150ms;
 }
 

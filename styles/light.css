@@ -26,13 +26,13 @@
 /* Same tones as the stock panel button (gnome-shell-light.css). */
 .claude-meter-highlight:hover,
 .claude-meter-highlight:focus {
-    background-color: rgba(34, 34, 38, 0.17);
+    box-shadow: inset 0 0 0 100px rgba(34, 34, 38, 0.17);
 }
 
 .claude-meter-highlight:active {
-    background-color: rgba(34, 34, 38, 0.28);
+    box-shadow: inset 0 0 0 100px rgba(34, 34, 38, 0.28);
 }
 
 .claude-meter-highlight:active:hover {
-    background-color: rgba(34, 34, 38, 0.32);
+    box-shadow: inset 0 0 0 100px rgba(34, 34, 38, 0.32);
 }
