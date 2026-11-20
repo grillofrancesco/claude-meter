@@ -115,7 +115,28 @@
     margin-top: 2px;
 }
 
-/* Top bar: usage rings + Claude crabs. */
+/* Top bar: usage rings + Claude crabs.
+ * The stock panel-button highlight (an inset box-shadow, see gnome-shell-*.css) is disabled
+ * for our button: indicator.js mirrors hover/focus/active on .claude-meter-highlight instead,
+ * so only rings + icon are highlighted, not the crabs. */
+#panel .panel-button.claude-meter-button,
+#panel .panel-button.claude-meter-button:hover,
+#panel .panel-button.claude-meter-button:focus,
+#panel .panel-button.claude-meter-button:active,
+#panel .panel-button.claude-meter-button:checked,
+#panel .panel-button.claude-meter-button:active:hover,
+#panel .panel-button.claude-meter-button:checked:hover {
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.claude-meter-highlight {
+    border-radius: 999px;
+    padding: 0 3px; /* HIGHLIGHT_PAD in lib/crabs.js */
+    spacing: 4px; /* PANEL_SPACING in lib/crabs.js */
+    transition-duration: 150ms;
+}
+
 .claude-meter-panel {
     spacing: 4px; /* PANEL_SPACING in lib/indicator.js */
 }

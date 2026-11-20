@@ -1,9 +1,9 @@
 // Tests for lib/crabs.js (pure module): gjs -m tests/test-crabs.js
 import System from 'system';
 
-import {CrabRow, PLACEHOLDER_ID, compileAnimations, COMPILED_ANIMATIONS, COMPILED_GRID, FPS, SPRITE_W, CRAB_GAP, CRAB_SLOT}
+import {CrabRow, PLACEHOLDER_ID, compileAnimations, COMPILED_ANIMATIONS, COMPILED_GRID, FPS, SPRITE_W, CRAB_GAP, CRAB_SLOT, panelWidths, splitSessions, RING_SIZE, PANEL_SPACING, MORE_WIDTH, HIGHLIGHT_PAD, SPRITE_H, PIXEL}
     from '../lib/crabs.js';
-import {ANIMATIONS, PALETTE, STATES, GRID_W, GRID_H} from '../lib/sprites.js';
+import {ANIMATIONS, PALETTE, STATES, GRID_W, GRID_H, SPRITE_HEIGHT} from '../lib/sprites.js';
 
 let total = 0;
 let failures = 0;
@@ -34,7 +34,8 @@ const lenOf = name => COMPILED_ANIMATIONS[name].frames.length;
 const steps = (row, n) => { for (let i = 0; i < n; i++) row.step(); };
 
 function testCompile() {
-    check('griglia 16x15', GRID_W === 16 && GRID_H === 15 && COMPILED_GRID.width === 16 && COMPILED_GRID.height === 15);
+    check('griglia 16x13, sprite 26 px', GRID_W === 16 && GRID_H === 13 && COMPILED_GRID.width === 16 &&
+        COMPILED_GRID.height === 13 && SPRITE_HEIGHT === 26 && GRID_H * PIXEL === SPRITE_HEIGHT && SPRITE_H === 26);
     for (const name of [STATES.sleep, STATES.start, STATES.done, ...works])
         check(`animazione '${name}' compilata`, Boolean(COMPILED_ANIMATIONS[name]?.frames.length));
     const f = COMPILED_ANIMATIONS[STATES.sleep].frames[0];
@@ -147,6 +148,36 @@ function testSlots() {
     check('capacity(widthFor(n)) = n', [1, 2, 3, 5].every(n => CrabRow.capacity(CrabRow.widthFor(n)) === n));
     check('capacity troppo stretto = 0', CrabRow.capacity(SPRITE_W - 1) === 0 && CrabRow.capacity(0) === 0);
     check('capacity un pixel sotto', CrabRow.capacity(CrabRow.widthFor(3) - 1) === 2);
+
+    // panelWidths
+    check('panelWidths vuoto = 0', panelWidths().total === 0 && panelWidths().crabs === 0);
+    check('panelWidths 0..10 granchi = widthFor', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every(n =>
+        panelWidths({crabs: n}).crabs === CrabRow.widthFor(n) && panelWidths({crabs: n}).total === CrabRow.widthFor(n)));
+    const HP = 2 * HIGHLIGHT_PAD;
+    check('panelWidths solo anelli', panelWidths({rings: 1}).total === RING_SIZE + HP &&
+        panelWidths({rings: 2}).total === 2 * RING_SIZE + PANEL_SPACING + HP);
+    check('panelWidths granchi + anelli', panelWidths({crabs: 3, rings: 2}).total ===
+        CrabRow.widthFor(3) + 2 * RING_SIZE + 2 * PANEL_SPACING + HP);
+    check('panelWidths con +N', panelWidths({crabs: 3, more: 2, rings: 2}).total ===
+        CrabRow.widthFor(3) + MORE_WIDTH + 2 * RING_SIZE + 3 * PANEL_SPACING + HP &&
+        panelWidths({crabs: 3, more: 2, rings: 2}).crabs === CrabRow.widthFor(3));
+    check('panelWidths +N senza anelli', panelWidths({crabs: 1, more: true}).total ===
+        CrabRow.widthFor(1) + PANEL_SPACING + MORE_WIDTH);
+    check('panelWidths 10 granchi, +N, 2 anelli', panelWidths({crabs: 10, more: 1, rings: 2}).total ===
+        10 * CRAB_SLOT - CRAB_GAP + MORE_WIDTH + 2 * RING_SIZE + 3 * PANEL_SPACING + HP);
+
+    // splitSessions
+    {
+        const s5 = [1, 2, 3, 4, 5].map(i => ({id: `s${i}`}));
+        const a = splitSessions(s5, 3);
+        check('split 5 sessioni max 3', a.shown.length === 3 && a.hidden === 2 && a.shown[0].id === 's1' && a.shown[2].id === 's3');
+        const b = splitSessions(s5.slice(0, 2), 3);
+        check('split 2 sessioni max 3', b.shown.length === 2 && b.hidden === 0);
+        const c = splitSessions(s5, 3, false);
+        check('split granchi disabilitati', c.shown.length === 0 && c.hidden === 0);
+        check('split nessuna sessione', splitSessions([], 3).shown.length === 0 && splitSessions([], 3).hidden === 0);
+        check('split max 10', splitSessions(s5, 10).hidden === 0);
+    }
 }
 
 function testStepAndAnimating() {

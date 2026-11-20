@@ -5,13 +5,13 @@ in una posizione fissa: la sessione più vecchia a sinistra, le nuove si aggiung
 poi gli anelli di utilizzo. Le animazioni nascono da **spritesheet PNG** in `clawd-animation/`
 e vengono convertite in dati JS da uno script: a runtime non si legge nessuna immagine.
 `clawd-animation/` è **solo per lo sviluppo** ed è in `.gitignore`: chi installa l'estensione usa
-il `lib/sprites.js` già generato e versionato. Dopo aver cambiato gli sheet, rigenera e committa `lib/sprites.js`.
+il `lib/sprites.js` già generato e versionato. Dopo aver cambiato gli sheet, esegui `install` e committa `lib/sprites.js`.
 
 ## Flusso
 
 ```
 clawd-animation/*.png  +  clawd-animation/animations.json
-        │  gjs -m tools/build-animations.js   (solo lo sviluppatore, a mano)
+        │  gjs -m tools/build-animations.js install   (solo lo sviluppatore; valida prima di scrivere)
         ▼
 lib/sprites.js   (GENERATO e versionato, non modificare a mano)
         │  compilato una volta al caricamento da lib/crabs.js
@@ -30,14 +30,19 @@ si può usare per rigenerarli, oppure si possono disegnare gli PNG con qualsiasi
 - Tutti gli sheet devono avere la stessa altezza e la stessa larghezza di frame.
 - Pixel con alpha 0 = trasparenti. Gli altri colori vengono usati così come sono
   (anche semitrasparenti), senza ricolorazione per sessione.
+- **Limite di altezza**: il contenuto del pannello è alto 26 px (32 px meno 3 px di bordo sopra e sotto),
+  con pixel da 2 px sono al massimo **13 righe**. Il ritaglio globale deve stare in 13 righe: negli sheet
+  16×16 i piedi stanno alla riga 14, quindi si usano le righe 2..14.
 - Lo script ritaglia le righe/colonne vuote **in tutti i frame di tutte le animazioni**
-  (oggi resta 16×15 → 32×30 px nella barra) e costruisce una palette unica (max 62 colori).
+  (oggi resta 16×13 → 32×26 px nella barra) e costruisce una palette unica (max 62 colori).
 
 ## Manifest `clawd-animation/animations.json`
 
 ```json
 {
   "fps": 8,
+  "pixel": 2,
+  "maxHeight": 26,
   "animations": {
     "idle":       {"file": "idle.png",       "loop": true},
     "laptop_out": {"file": "laptop_out.png", "loop": false},
@@ -52,6 +57,8 @@ si può usare per rigenerarli, oppure si possono disegnare gli PNG con qualsiasi
 | Campo | Significato |
 |---|---|
 | `fps` | frame al secondo di tutte le animazioni |
+| `pixel` | px logici per pixel dello sprite (2) |
+| `maxHeight` | px disponibili nella barra (26): righe massime = `floor(maxHeight / pixel)` |
 | `file` | PNG dentro `clawd-animation/` |
 | `loop` | `true` = gira in loop; `false` = eseguita una volta sola (tutti i frame) |
 | `seconds` | solo con `loop: true`: dopo quanti secondi l'animazione finisce (usato per `done`) |
@@ -76,23 +83,65 @@ Le transizioni (`start`, `done`) arrivano sempre alla fine; alla fine si guarda 
 (es. se la sessione è già tornata ferma durante `start`, segue `done`). Un granchio di una sessione
 appena comparsa (o all'avvio dell'estensione) parte direttamente da `sleep` o `work`.
 
-## Operazioni
+## Comandi
 
-- **Modificare** un'animazione: modifica il PNG (o `generate.py` e rilancialo), poi rigenera.
-- **Aggiungere** un'animazione di lavoro: nuovo PNG, nuova voce in `animations`, aggiungi il nome
-  a `states.work`.
-- **Sostituire** un'animazione di stato: cambia il nome in `states`.
-- **Cambiare dimensione**: sheet più grandi/piccoli; griglia e spazio per granchio nella barra si
-  adattano. Aggiorna il test della griglia in `tests/test-crabs.js` e verifica che la barra non si
-  allarghi (la griglia ritagliata × `PIXEL` deve stare nell'altezza del pannello).
+`gjs -m tools/build-animations.js <comando>` (senza comando = `install`). Il manifest viene riscritto
+con JSON a 2 spazi.
+
+| Comando | Effetto |
+|---|---|
+| `check` | valida tutto e stampa il report, non scrive nulla; exit 1 se ci sono problemi |
+| `install` | stessa validazione; solo se è tutto OK scrive `lib/sprites.js`, altrimenti stampa i motivi e `Installazione rifiutata: lib/sprites.js non modificato` (exit 1) |
+| `list` | animazioni (file, frame, loop/una volta, righe usate), mappa degli stati, e se `lib/sprites.js` è allineato |
+| `preview <nome> [frame]` | mostra i frame nel terminale a colori (trasparente = punti) |
+| `add <png> --name N (--loop [--seconds S] \| --once) [--frame-width W]` | copia il PNG in `clawd-animation/`, aggiunge la voce, esegue `check` (poi serve `install`) |
+| `remove <nome>` | toglie la voce; rifiutato se usata da uno stato; il PNG resta |
+| `set-state <sleep\|start\|work\|done> <nome[,nome]>` | solo `work` accetta una lista; `start` deve essere non-loop, gli altri loop |
+
+```bash
+gjs -m tools/build-animations.js add yawn.png --name yawn --once
+gjs -m tools/build-animations.js set-state start yawn
+gjs -m tools/build-animations.js add typing_C.png --name work_C --loop
+gjs -m tools/build-animations.js set-state work work_A,work_B,work_C
+gjs -m tools/build-animations.js install
+```
+
+Il report di `check`/`install` inizia sempre dal limite e dice, per animazione, le righe usate
+(nelle coordinate originali dello sheet) e i frame che sforano:
+
+```
+Limite: altezza max 26 px = 13 righe (pixel 2 px)
+  idle        16 frame  righe 2..14 (13)  OK
+  success     16 frame  righe 0..14 (15)  ERRORE: 15 righe > 13 (frame 3, 4, 10)
+Griglia installata: 16x13 → 32x26 px
+```
+
+Controlla anche: file esistente, larghezza multipla del frame, stessa altezza/larghezza frame per
+tutti gli sheet, stati validi, max 62 colori, regole su `seconds`. `lib/sprites.js` esporta anche
+`PIXEL`, `MAX_HEIGHT` e `SPRITE_HEIGHT` (= `GRID_H * PIXEL`, px).
+
+- **Modificare**: cambia il PNG (o `generate.py`, che scrive nella propria cartella), poi `install`.
+- **Sostituire** un'animazione di stato: `set-state`.
+- **Cambiare dimensione**: sheet diversi; se la griglia supera le righe massime `install` rifiuta.
+  Aggiorna il test della griglia in `tests/test-crabs.js`.
+
+## install.sh e altezza nel pannello
+
+Dopo l'installazione `./install.sh` (dopo il `clear`) legge `SPRITE_HEIGHT` da `lib/sprites.js` e
+`panel-content-height` (px misurati dall'estensione in esecuzione, 0 = mai misurato):
+0 → avvisa che l'estensione segnalerà al primo avvio se non ci stanno (intanto sbordano);
+misurato ≥ sprite → `Animazioni: X px, spazio nel pannello: Y px — OK`; misurato < sprite → spiega e,
+se da terminale, chiede `[s]bordare o [t]agliare la parte superiore?` impostando `crab-overflow`
+(`overflow`/`crop`); senza TTY indica dove cambiarlo (Preferenze → "Animazioni troppo alte").
 
 ## Verificare e applicare
 
 ```bash
-gjs -m tools/build-animations.js   # rigenera lib/sprites.js (errori di formato -> exit 1)
-gjs -m tests/test-crabs.js         # compila gli sprite e prova la macchina a stati
-dev/nested.sh start                # shell GNOME isolata con l'estensione
+gjs -m tools/build-animations.js check   # report, nessuna scrittura
+gjs -m tools/build-animations.js install # scrive lib/sprites.js solo se tutto è OK
+gjs -m tests/test-crabs.js               # compila gli sprite e prova la macchina a stati
+dev/nested.sh start                      # shell GNOME isolata con l'estensione
 dev/nested.sh shot crabs 1000 0 280 32   # screenshot della barra in .dev/crabs.png
 dev/nested.sh stop
-./install.sh                       # poi, su Wayland, esci e rientra nella sessione
+./install.sh                             # poi, su Wayland, esci e rientra nella sessione
 ```

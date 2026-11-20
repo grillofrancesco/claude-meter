@@ -7,6 +7,7 @@ import GLib from 'gi://GLib';
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import {SessionStore} from './lib/sessionStore.js';
+import {panelWidths, SPRITE_H} from './lib/crabs.js';
 
 Gio._promisify(Adw.AlertDialog.prototype, 'choose', 'choose_finish');
 
@@ -628,19 +629,15 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         panelGroup.add(sevenDayRow);
         settings.bind('panel-show-seven-day', sevenDayRow, 'active', Gio.SettingsBindFlags.DEFAULT);
 
-        const crabModes = ['per-session', 'max', 'off'];
-        const crabRow = new Adw.ComboRow({
-            title: 'Granchi',
-            subtitle: 'Uno per ogni sessione di Claude Code aperta',
-            model: Gtk.StringList.new(['Uno per sessione', 'Numero massimo', 'Nessuno']),
-        });
-        panelGroup.add(crabRow);
+        const crabsRow = new Adw.SwitchRow({title: 'Clawds'});
+        panelGroup.add(crabsRow);
+        settings.bind('crabs-enabled', crabsRow, 'active', Gio.SettingsBindFlags.DEFAULT);
 
         const crabMaxRow = new Adw.SpinRow({
-            title: 'Numero massimo di granchi',
+            title: 'Sessioni mostrate',
             adjustment: new Gtk.Adjustment({
                 lower: 1,
-                upper: 20,
+                upper: 10,
                 step_increment: 1,
                 page_increment: 5,
                 value: settings.get_uint('crab-max'),
@@ -650,24 +647,55 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         panelGroup.add(crabMaxRow);
         settings.bind('crab-max', crabMaxRow, 'value', Gio.SettingsBindFlags.DEFAULT);
 
-        const syncCrabRow = () => {
-            const mode = settings.get_string('crab-mode');
-            const index = crabModes.indexOf(mode);
-            crabRow.selected = index < 0 ? 0 : index;
-            crabMaxRow.sensitive = mode === 'max';
+        const syncCrabMaxRow = () => {
+            const n = settings.get_uint('crab-max');
+            const rings = Number(settings.get_boolean('panel-show-five-hour')) +
+                Number(settings.get_boolean('panel-show-seven-day'));
+            // Worst case: more sessions than crabs, so the "+N" label is shown too.
+            const widths = panelWidths({crabs: n, more: 1, rings});
+            crabMaxRow.subtitle = `Clawds: ${widths.crabs} px · Totale: ${widths.total} px`;
+            crabMaxRow.sensitive = settings.get_boolean('crabs-enabled');
         };
-        syncCrabRow();
-        crabRow.connect('notify::selected', () => {
-            const mode = crabModes[crabRow.selected] ?? 'per-session';
-            if (settings.get_string('crab-mode') !== mode)
-                settings.set_string('crab-mode', mode);
+        syncCrabMaxRow();
+        const crabSyncIds = ['crab-max', 'crabs-enabled', 'panel-show-five-hour', 'panel-show-seven-day']
+            .map(key => settings.connect(`changed::${key}`, syncCrabMaxRow));
+
+        const overflowModes = ['overflow', 'crop'];
+        const overflowRow = new Adw.ComboRow({
+            title: 'Animazioni troppo alte',
+            model: Gtk.StringList.new(['Sbordare', 'Tagliare in alto']),
         });
-        const crabChangedId = settings.connect('changed::crab-mode', syncCrabRow);
+        panelGroup.add(overflowRow);
+        const syncOverflowRow = () => {
+            const index = overflowModes.indexOf(settings.get_string('crab-overflow'));
+            overflowRow.selected = index < 0 ? 0 : index;
+        };
+        const syncOverflowSubtitle = () => {
+            const h = settings.get_uint('panel-content-height');
+            overflowRow.subtitle = h > 0
+                ? `Spazio nel pannello: ${h} px, animazioni: ${SPRITE_H} px`
+                : 'Spazio nel pannello non ancora misurato';
+            // Muted when the measured space is enough: the choice has no effect.
+            const fits = h > 0 && h >= SPRITE_H;
+            overflowRow.sensitive = !fits;
+            overflowRow.tooltip_text = fits
+                ? `Le animazioni (${SPRITE_H} px) rientrano nell'altezza della barra superiore (${h} px)`
+                : null;
+        };
+        syncOverflowRow();
+        syncOverflowSubtitle();
+        overflowRow.connect('notify::selected', () => {
+            const mode = overflowModes[overflowRow.selected] ?? 'overflow';
+            if (settings.get_string('crab-overflow') !== mode)
+                settings.set_string('crab-overflow', mode);
+        });
+        const overflowChangedId = settings.connect('changed::crab-overflow', syncOverflowRow);
+        const heightChangedId = settings.connect('changed::panel-content-height', syncOverflowSubtitle);
 
         const emptyModes = ['crab', 'icon'];
         const emptyRow = new Adw.ComboRow({
             title: 'Senza sessioni aperte',
-            model: Gtk.StringList.new(['Granchio che dorme', 'Icona']),
+            model: Gtk.StringList.new(['Clawd che dorme', 'Icona']),
         });
         panelGroup.add(emptyRow);
         const syncEmptyRow = () => {
@@ -682,25 +710,12 @@ export default class ClaudeMeterPrefs extends ExtensionPreferences {
         });
         const emptyChangedId = settings.connect('changed::panel-empty', syncEmptyRow);
         window.connect('close-request', () => {
-            settings.disconnect(crabChangedId);
+            crabSyncIds.forEach(id => settings.disconnect(id));
+            settings.disconnect(overflowChangedId);
+            settings.disconnect(heightChangedId);
             settings.disconnect(emptyChangedId);
             return false;
         });
-
-        const widthRow = new Adw.SpinRow({
-            title: 'Larghezza massima',
-            subtitle: 'Pixel occupati da cerchi e granchi (40-400)',
-            adjustment: new Gtk.Adjustment({
-                lower: 40,
-                upper: 400,
-                step_increment: 10,
-                page_increment: 50,
-                value: settings.get_uint('panel-max-width'),
-            }),
-            digits: 0,
-        });
-        panelGroup.add(widthRow);
-        settings.bind('panel-max-width', widthRow, 'value', Gio.SettingsBindFlags.DEFAULT);
 
         const lookGroup = new Adw.PreferencesGroup({title: 'Aspetto'});
         page.add(lookGroup);

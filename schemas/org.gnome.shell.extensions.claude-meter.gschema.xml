@@ -45,15 +45,10 @@
       <summary>Cerchio settimanale</summary>
       <description>Mostra nella barra superiore il cerchio di utilizzo settimanale.</description>
     </key>
-    <key name="crab-mode" type="s">
-      <choices>
-        <choice value="per-session"/>
-        <choice value="max"/>
-        <choice value="off"/>
-      </choices>
-      <default>'per-session'</default>
+    <key name="crabs-enabled" type="b">
+      <default>true</default>
       <summary>Granchi</summary>
-      <description>'per-session': un granchio per sessione Claude Code aperta; 'max': al massimo crab-max granchi; 'off': nessun granchio.</description>
+      <description>Mostra nella barra superiore un granchio per ogni sessione di Claude Code aperta.</description>
     </key>
     <key name="panel-empty" type="s">
       <choices>
@@ -66,15 +61,24 @@
     </key>
     <key name="crab-max" type="u">
       <default>3</default>
-      <range min="1" max="20"/>
-      <summary>Numero massimo di granchi</summary>
-      <description>Usato quando crab-mode è 'max'.</description>
+      <range min="1" max="10"/>
+      <summary>Sessioni mostrate</summary>
+      <description>Numero massimo di granchi mostrati; le altre sessioni sono contate in "+N".</description>
     </key>
-    <key name="panel-max-width" type="u">
-      <default>170</default>
-      <range min="40" max="400"/>
-      <summary>Larghezza massima nella barra superiore</summary>
-      <description>Larghezza massima in pixel di cerchi e granchi insieme.</description>
+    <key name="crab-overflow" type="s">
+      <choices>
+        <choice value="overflow"/>
+        <choice value="crop"/>
+      </choices>
+      <default>'overflow'</default>
+      <summary>Animazioni troppo alte</summary>
+      <description>Cosa fare se il pannello ha meno spazio dell'altezza delle animazioni: 'overflow' sborda, 'crop' taglia la parte superiore.</description>
+    </key>
+    <key name="panel-content-height" type="u">
+      <default>0</default>
+      <range min="0" max="200"/>
+      <summary>Altezza disponibile nel pannello</summary>
+      <description>Pixel disponibili per i granchi nella barra superiore, misurati e scritti dall'estensione (0 = mai misurato).</description>
     </key>
     <key name="prefs-start-page" type="s">
       <choices>

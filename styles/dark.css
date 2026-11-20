@@ -22,3 +22,17 @@
     -claude-meter-ring-warning: #f6d32d;
     -claude-meter-ring-critical: #e01b24;
 }
+
+/* Same tones as the stock panel button (gnome-shell-dark.css). */
+.claude-meter-highlight:hover,
+.claude-meter-highlight:focus {
+    background-color: rgba(255, 255, 255, 0.17);
+}
+
+.claude-meter-highlight:active {
+    background-color: rgba(255, 255, 255, 0.28);
+}
+
+.claude-meter-highlight:active:hover {
+    background-color: rgba(255, 255, 255, 0.32);
+}

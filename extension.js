@@ -79,7 +79,7 @@ export default class ClaudeMeterExtension extends Extension {
         this._sessions = new SessionMonitor();
         this._sessionScanning = false;
         this._sessionRescan = false;
-        this._crabModeId = this._settings.connect('changed::crab-mode',
+        this._crabModeId = this._settings.connect('changed::crabs-enabled',
             () => this._updateSessionWatch());
         this._updateSessionWatch();
 
@@ -140,7 +140,7 @@ export default class ClaudeMeterExtension extends Extension {
     // ------------------------------------------------------------ sessions / crabs
 
     _updateSessionWatch() {
-        if (this._settings.get_string('crab-mode') === 'off') {
+        if (!this._settings.get_boolean('crabs-enabled')) {
             this._stopSessionWatch();
             this._indicator?.setSessions([]);
             return;
