@@ -46,11 +46,10 @@ si può usare per rigenerarli, oppure si possono disegnare gli PNG con qualsiasi
   "animations": {
     "idle":       {"file": "idle.png",       "loop": true},
     "laptop_out": {"file": "laptop_out.png", "loop": false},
-    "work_A":     {"file": "work_A.png",     "loop": true},
-    "work_B":     {"file": "work_B.png",     "loop": true},
+    "work":       {"file": "work.png",       "loop": true},
     "success":    {"file": "success.png",    "loop": true, "seconds": 2}
   },
-  "states": {"sleep": "idle", "start": "laptop_out", "work": ["work_A", "work_B"], "done": "success"}
+  "states": {"sleep": "idle", "start": "laptop_out", "work": ["work"], "done": "success"}
 }
 ```
 
@@ -102,7 +101,7 @@ con JSON a 2 spazi.
 gjs -m tools/build-animations.js add yawn.png --name yawn --once
 gjs -m tools/build-animations.js set-state start yawn
 gjs -m tools/build-animations.js add typing_C.png --name work_C --loop
-gjs -m tools/build-animations.js set-state work work_A,work_B,work_C
+gjs -m tools/build-animations.js set-state work work,work_C
 gjs -m tools/build-animations.js install
 ```
 
