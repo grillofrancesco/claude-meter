@@ -141,6 +141,13 @@
     transition-duration: 150ms;
 }
 
+/* Icon alone: a circle like the stock round buttons. The stock icon padding/margin is dropped
+ * so the box is 16 + 2 * 5 + 2 * 3 = 32 px wide, the same as its height (26 px highlight). */
+#panel .claude-meter-highlight.claude-meter-icon-only .system-status-icon {
+    padding: 0;
+    margin: 0;
+}
+
 .claude-meter-panel {
     spacing: 4px; /* PANEL_SPACING in lib/indicator.js */
 }

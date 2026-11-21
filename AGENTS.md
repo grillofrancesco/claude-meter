@@ -160,6 +160,8 @@ export const ClaudeMeterIndicator = GObject.registerClass({
 // ('overflow' = full sprite above the box, 'crop' = top rows cut). install.sh reads the same key.
 // Hover/focus/menu-open highlight is only on the `claude-meter-highlight` box (rings/icon): the button's own
 // highlight is disabled by CSS on `.claude-meter-button` and its state mirrored onto the box from code.
+// No rings and no icon (crabs only) = box hidden, no highlight; icon alone = `claude-meter-icon-only`
+// class (stock icon padding/margin dropped) so the box is 32×32 and the highlight a 26 px circle.
 // Emits 'refresh-requested' when the menu is opened (no manual refresh button).
 // Menu = two PopupMenuSection "pages": main (plan + age right-aligned, height filler, "Gestisci
 // conversazioni") and details (tokens, 7-day chart, prefs), padded to the same height;
