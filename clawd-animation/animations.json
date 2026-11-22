@@ -1,0 +1,32 @@
+{
+  "fps": 8,
+  "pixel": 2,
+  "maxHeight": 26,
+  "animations": {
+    "idle": {
+      "file": "idle.png",
+      "loop": true
+    },
+    "laptop_out": {
+      "file": "laptop_out.png",
+      "loop": false
+    },
+    "success": {
+      "file": "success.png",
+      "loop": true,
+      "seconds": 2
+    },
+    "work": {
+      "file": "work.png",
+      "loop": true
+    }
+  },
+  "states": {
+    "sleep": "idle",
+    "start": "laptop_out",
+    "work": [
+      "work"
+    ],
+    "done": "success"
+  }
+}

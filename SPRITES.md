@@ -4,8 +4,54 @@ Ogni sessione aperta di Claude Code compare nella barra in alto come un Clawd in
 in una posizione fissa: la sessione più vecchia a sinistra, le nuove si aggiungono a destra,
 poi gli anelli di utilizzo. Le animazioni nascono da **spritesheet PNG** in `clawd-animation/`
 e vengono convertite in dati JS da uno script: a runtime non si legge nessuna immagine.
-`clawd-animation/` è **solo per lo sviluppo** ed è in `.gitignore`: chi installa l'estensione usa
-il `lib/sprites.js` già generato e versionato. Dopo aver cambiato gli sheet, esegui `install` e committa `lib/sprites.js`.
+`clawd-animation/` è versionata ma serve **solo per lo sviluppo**: non entra nel pacchetto
+(`build.sh` include solo `lib/`, `prefs/`, `icons/`, schema e fogli di stile) e chi installa l'estensione
+usa il `lib/sprites.js` già generato. Dopo aver cambiato gli sheet, esegui `install` e committa
+insieme gli sheet, il manifest e `lib/sprites.js`.
+
+## Aggiornare le animazioni (in breve)
+
+**Dimensioni richieste**
+
+- PNG RGBA, una striscia orizzontale per animazione: frame affiancati da sinistra a destra.
+- Frame da **16×16 px** (larghezza del frame = altezza dello sheet), quindi lo sheet è largo
+  `16 × numero di frame` (es. 16 frame → 256×16). Frame non quadrati: `frameWidth` nel manifest.
+- **Tutti** gli sheet con la stessa altezza e la stessa larghezza di frame.
+- Contenuto alto al massimo **13 righe** (`floor(maxHeight / pixel)` = 26 / 2): negli sheet 16×16
+  disegna tra la riga 2 e la riga 14 (piedi alla riga 14), lasciando vuote le righe 0, 1 e 15.
+- Al massimo **62 colori** diversi sommando tutte le animazioni; alpha 0 = trasparente.
+
+**Quando un'animazione viene accettata**
+
+`check` e `install` validano tutto prima di scrivere; `install` rifiuta (exit 1, `lib/sprites.js`
+non modificato) se anche una sola regola non è rispettata: file presente, larghezza dello sheet
+multipla del frame, dimensioni uguali per tutti gli sheet, nessuna animazione del tutto trasparente,
+nessun frame oltre le 13 righe (il report indica righe e frame che sforano), palette ≤ 62 colori,
+stati tutti assegnati ad animazioni esistenti (`start` non in loop, `sleep`/`work`/`done` in loop),
+`seconds` solo con `loop: true` e > 0.
+
+**Comandi**
+
+```bash
+# 1. modifica i PNG (con un editor, oppure cambia generate.py e rigenera)
+python3 clawd-animation/generate.py
+# oppure aggiungi un'animazione nuova e collegala a uno stato
+gjs -m tools/build-animations.js add nuovo.png --name nuovo --loop
+gjs -m tools/build-animations.js set-state work work,nuovo
+# 2. controlla (nessuna scrittura) e guarda i frame nel terminale
+gjs -m tools/build-animations.js check
+gjs -m tools/build-animations.js preview nuovo
+# 3. genera lib/sprites.js e verifica
+gjs -m tools/build-animations.js install
+gjs -m tests/test-crabs.js
+gjs -m tools/build-animations.js list      # deve dire "allineato"
+# 4. prova nella shell isolata, poi installa
+dev/nested.sh start && dev/nested.sh shot crabs 1000 0 280 32 && dev/nested.sh stop
+./install.sh                               # su Wayland: esci e rientra nella sessione
+# 5. committa insieme clawd-animation/ e lib/sprites.js
+```
+
+Le versioni vecchie non si tengono in sottocartelle di `clawd-animation/`: restano nella cronologia git.
 
 ## Flusso
 
