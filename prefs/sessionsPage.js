@@ -130,28 +130,23 @@ export class SessionsPage {
 
     // Floating bar shown at the bottom of the window while the selection mode is on.
     _buildBar() {
+        // Icon-only pill: [← cancel] [trash]. The size is shown only in the confirmation dialog.
+        this._cancelSelectButton = new Gtk.Button({
+            icon_name: 'go-previous-symbolic',
+            valign: Gtk.Align.CENTER,
+            tooltip_text: t('prefs.sessions.cancel'),
+            css_classes: ['flat', 'circular'],
+        });
+        this._cancelSelectButton.connect('clicked', () => this._setSelectionMode(false));
+
         this._deleteSelectedButton = new Gtk.Button({
+            icon_name: 'user-trash-symbolic',
             sensitive: false,
             valign: Gtk.Align.CENTER,
             tooltip_text: t('prefs.sessions.deleteSelected'),
-            css_classes: ['destructive-action'],
+            css_classes: ['destructive-action', 'circular'],
         });
-        const content = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 6});
-        content.append(new Gtk.Image({icon_name: 'user-trash-symbolic'}));
-        this._deleteCountLabel = new Gtk.Label({label: '0'});
-        content.append(this._deleteCountLabel);
-        this._deleteSelectedButton.set_child(content);
         this._deleteSelectedButton.connect('clicked', () => this._onTrashSelected());
-
-        this._sizeLabel = new Gtk.Label({
-            label: '—',
-            valign: Gtk.Align.CENTER,
-            width_chars: 8,
-            css_classes: ['dim-label'],
-        });
-
-        this._cancelSelectButton = new Gtk.Button({label: t('prefs.sessions.cancel'), valign: Gtk.Align.CENTER});
-        this._cancelSelectButton.connect('clicked', () => this._setSelectionMode(false));
 
         this._bar = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
@@ -164,7 +159,7 @@ export class SessionsPage {
             visible: false,
             css_classes: ['toolbar', 'claude-meter-bar'],
         });
-        for (const w of [this._deleteSelectedButton, this._sizeLabel, this._cancelSelectButton])
+        for (const w of [this._cancelSelectButton, this._deleteSelectedButton])
             this._bar.append(w);
 
         // Opaque pill (the stock .osd lets the rows show through). Installed once
@@ -393,18 +388,8 @@ export class SessionsPage {
         }
         const n = this._selected.size;
         this._trashModeButton.visible = !this._selectionMode;
-        this._deleteCountLabel.label = String(n);
         this._deleteSelectedButton.sensitive = n > 0 && !this._busy;
         this._cancelSelectButton.sensitive = !this._busy;
-        let known = 0;
-        let any = false;
-        for (const s of this._selected) {
-            if (typeof s.size === 'number') {
-                known += s.size;
-                any = true;
-            }
-        }
-        this._sizeLabel.label = any ? GLib.format_size(known) : '—';
         this._syncBar();
     }
 
