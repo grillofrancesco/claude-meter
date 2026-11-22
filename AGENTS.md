@@ -163,12 +163,13 @@ export const ClaudeMeterIndicator = GObject.registerClass({
 // No rings and no icon (crabs only) = box hidden, no highlight; icon alone = `claude-meter-icon-only`
 // class (stock icon padding/margin dropped) so the box is 32×32 and the highlight a 26 px circle.
 // Emits 'refresh-requested' when the menu is opened (no manual refresh button).
-// Menu = two PopupMenuSection "pages": main (plan + age right-aligned, height filler, "Gestisci
-// conversazioni") and details (tokens, 7-day chart, prefs), padded to the same height;
+// Menu = two PopupMenuSection "pages": main (title row with a flat round gear `St.Button` on the right
+// that closes the menu and opens the preferences, plan + age right-aligned, height filler) and details
+// (tokens, 7-day chart), padded to the same height so "Dettagli ›" / "‹ Indietro" line up;
 // NavItem overrides activate() so switching page does not close the menu.
 // Only the 5-hour and 7-day bars are drawn: PlanUsage.scoped stays in the data contract but is not shown.
-// Main page item "Gestisci conversazioni": sets `prefs-start-page` to 'sessions', then opens the
-// preferences (or raises the window if already open: openPreferences() fails in that case).
+// Gear button: openPreferences() opens the preferences on the general page (or raises the window if
+// already open: extension.openPreferences() fails in that case).
 ```
 
 ### lib/sessionMonitor.js
@@ -192,7 +193,6 @@ Claude Code writes `~/.claude/sessions/<pid>.json` with `kind` ('interactive'|'b
 - `panel-content-height` (u, default 0 = not measured) — written by the extension, read by install.sh
 - `panel-empty` (s, 'crab' | 'icon', default 'crab') — what the top bar shows when no session crab is shown: a sleeping crab next to the rings or the icon. With `crabs-enabled` false the icon is always used: the prefs row is muted, shows "Icona" with a tooltip, and the saved value is kept for when Clawds are re-enabled
 - `language` (s, '' | 'it' | 'en', default '') — UI language; '' = never chosen (resolved from the desktop language, see `resolveLanguage`)
-- `prefs-start-page` (s, 'general' | 'sessions', default 'general') — one-shot: page to show when the preferences open; `prefs.js` consumes it and resets it to 'general' (also while the window is already open)
 
 ## Verification
 - Pure modules (parser, usage, data, sessions, session-store, crabs, format, i18n, scheduler) can be run outside the shell: `gjs -m tests/test-<name>.js`; `bash tests/run-all.sh` runs every test plus the schema check.

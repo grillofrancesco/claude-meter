@@ -90,14 +90,5 @@
       <summary>Available panel height</summary>
       <description>Pixels available for the crabs in the top bar, measured and written by the extension (0 = not measured yet).</description>
     </key>
-    <key name="prefs-start-page" type="s">
-      <choices>
-        <choice value="general"/>
-        <choice value="sessions"/>
-      </choices>
-      <default>'general'</default>
-      <summary>Preferences start page</summary>
-      <description>Page to show the next time the preferences open ('general' | 'sessions'). Reset to 'general' after use.</description>
-    </key>
   </schema>
 </schemalist>

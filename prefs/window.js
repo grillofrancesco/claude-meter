@@ -67,28 +67,11 @@ export function fillWindow(window, settings, {store = null, iconsDir = null} = {
         window.set_visible_page(wasSessions ? sessionsPage.page : general.page);
     };
 
-    // Honour the requested start page, then reset the key. Resetting from
-    // inside the handler is safe: the re-emitted change reads 'general'.
-    const consumeStartPage = () => {
-        if (settings.get_string('prefs-start-page') !== 'sessions')
-            return false;
-        settings.set_string('prefs-start-page', 'general');
-        return true;
-    };
-
     build();
-    if (consumeStartPage())
-        window.set_visible_page(sessionsPage.page);
 
     const languageId = onLanguageChanged(() => rebuild());
     windowTracker.connect(settings, 'changed::language', () =>
         setLanguage(resolveLanguage(settings.get_string('language'))));
-    windowTracker.connect(settings, 'changed::prefs-start-page', () => {
-        if (!consumeStartPage())
-            return;
-        window.set_visible_page(sessionsPage.page);
-        sessionsPage.reload();
-    });
 
     window.connect('close-request', () => {
         closed = true;
