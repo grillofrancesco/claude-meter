@@ -36,3 +36,18 @@
 .claude-meter-highlight:active:hover {
     box-shadow: inset 0 0 0 100px rgba(255, 255, 255, 0.32);
 }
+
+/* Preferences gear: same backgrounds as the popup menu items (gnome-shell-*.css). */
+.claude-meter-prefs-button:hover,
+.claude-meter-prefs-button:focus {
+    color: #ffffff;
+    background-color: st-lighten(#424247, 7%);
+}
+
+.claude-meter-prefs-button:active {
+    background-color: st-lighten(#424247, 9%);
+}
+
+.claude-meter-prefs-button:active:hover {
+    background-color: st-lighten(st-lighten(#424247, 9%), 7%);
+}

@@ -165,7 +165,9 @@ export const ClaudeMeterIndicator = GObject.registerClass({
 // Emits 'refresh-requested' when the menu is opened (no manual refresh button).
 // Menu = two PopupMenuSection "pages": main (title row with a flat round gear `St.Button` on the right
 // that closes the menu and opens the preferences, plan + age right-aligned, height filler) and details
-// (tokens, 7-day chart), padded to the same height so "Dettagli ›" / "‹ Indietro" line up;
+// (7-day chart, tokens, height filler), padded to the same height so "Dettagli ›" / "‹ Indietro" line up;
+// gear and nav items use `cursor_type = Clutter.CursorType.POINTER` (St has no CSS cursor); the gear's
+// hover/active backgrounds match the popup menu items (dark.css / light.css).
 // NavItem overrides activate() so switching page does not close the menu.
 // Only the 5-hour and 7-day bars are drawn: PlanUsage.scoped stays in the data contract but is not shown.
 // Plan errors: 'expired' and 'unauthorized' both read "Dati non aggiornati: apri Claude Code per aggiornarli"

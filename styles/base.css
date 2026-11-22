@@ -119,12 +119,13 @@
     spacing: 8px;
 }
 
-/* Preferences gear next to the title: flat round icon button (stock .icon-button keeps
- * its hover/focus/active backgrounds, which are more specific than this rule). */
+/* Preferences gear next to the title: flat round icon button; hover/active backgrounds
+ * (same tones as the menu items) are in dark.css / light.css. */
 .claude-meter-prefs-button {
+    border-radius: 999px;
     background-color: transparent;
     padding: 6px;
-    min-height: 0;
+    transition-duration: 100ms;
 }
 
 .claude-meter-prefs-button StIcon {
