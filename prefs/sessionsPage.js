@@ -66,14 +66,15 @@ function groupByProject(sessions) {
 }
 
 // The "Conversazioni" page: list of conversations grouped by project, with
-// move-to-trash support. Deletion is always "select, then Elimina (N)": the
+// move-to-trash support. Deletion is always "select, then trash": the
 // row / group checkboxes are invisible (opacity 0, space kept) until hovered
 // or focused; checking one enters deletion mode. `store` is a SessionStore (or
 // a compatible fake).
 //
 // Action bar: Adw.PreferencesPage has no bottom bar and Adw.PreferencesWindow
 // only accepts PreferencesPage children (no ToolbarView around one page), so
-// the deletion actions live in the header of the first group, next to reload.
+// the deletion bar floats in a Gtk.Overlay around the window content. The
+// list reloads every time the page becomes visible (no reload button).
 export class SessionsPage {
     constructor(window, store) {
         this._window = window;
@@ -96,36 +97,11 @@ export class SessionsPage {
             icon_name: 'claude-meter-chat-symbolic',
         });
 
-        // Always-visible first group: hosts the header buttons and the
-        // loading / empty / error states.
-        this._headGroup = new Adw.PreferencesGroup({
-            title: t('prefs.sessions.title'),
-            description: t('prefs.sessions.description'),
-        });
-        this._headBox = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL, spacing: 6, valign: Gtk.Align.CENTER});
-
-        this._trashModeButton = new Gtk.Button({
-            icon_name: 'user-trash-symbolic',
-            tooltip_text: t('prefs.sessions.trashMode'),
-            valign: Gtk.Align.CENTER,
-            css_classes: ['flat'],
-        });
-        this._trashModeButton.connect('clicked', () => this._setSelectionMode(true));
+        // Untitled first group, shown only for the loading / empty / error states.
+        this._statusGroup = new Adw.PreferencesGroup({visible: false});
+        this.page.add(this._statusGroup);
 
         this._buildBar();
-
-        this._reloadButton = new Gtk.Button({
-            icon_name: 'view-refresh-symbolic',
-            tooltip_text: t('prefs.sessions.reload'),
-            valign: Gtk.Align.CENTER,
-            css_classes: ['flat'],
-        });
-        this._reloadButton.connect('clicked', () => this.reload());
-
-        for (const w of [this._trashModeButton, this._reloadButton])
-            this._headBox.append(w);
-        this._headGroup.set_header_suffix(this._headBox);
-        this.page.add(this._headGroup);
     }
 
     // Floating bar shown at the bottom of the window while the selection mode is on.
@@ -135,7 +111,7 @@ export class SessionsPage {
             icon_name: 'go-previous-symbolic',
             valign: Gtk.Align.CENTER,
             tooltip_text: t('prefs.sessions.cancel'),
-            css_classes: ['flat', 'circular'],
+            css_classes: ['flat'],
         });
         this._cancelSelectButton.connect('clicked', () => this._setSelectionMode(false));
 
@@ -144,7 +120,7 @@ export class SessionsPage {
             sensitive: false,
             valign: Gtk.Align.CENTER,
             tooltip_text: t('prefs.sessions.deleteSelected'),
-            css_classes: ['destructive-action', 'circular'],
+            css_classes: ['destructive-action'],
         });
         this._deleteSelectedButton.connect('clicked', () => this._onTrashSelected());
 
@@ -162,14 +138,14 @@ export class SessionsPage {
         for (const w of [this._cancelSelectButton, this._deleteSelectedButton])
             this._bar.append(w);
 
-        // Opaque pill (the stock .osd lets the rows show through). Installed once
+        // Opaque rounded bar (the stock .osd lets the rows show through). Installed once
         // per process: pages are rebuilt when the language changes.
         if (barCssInstalled)
             return;
         barCssInstalled = true;
         const css = new Gtk.CssProvider();
         css.load_from_string('.claude-meter-bar { background-color: @popover_bg_color; ' +
-            'color: @popover_fg_color; border-radius: 999px; padding: 6px 8px; ' +
+            'color: @popover_fg_color; border-radius: 12px; padding: 6px 8px; ' +
             'box-shadow: 0 2px 10px alpha(black, 0.45), 0 0 0 1px alpha(@borders, 0.6); }');
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
@@ -186,7 +162,8 @@ export class SessionsPage {
         this._overlay = new Gtk.Overlay({child: content});
         this._overlay.add_overlay(this._bar);
         this._window.set_content(this._overlay);
-        this._visiblePageId = this._window.connect('notify::visible-page', () => this._syncBar());
+        this._pageVisible = this._window.get_visible_page() === this.page;
+        this._visiblePageId = this._window.connect('notify::visible-page', () => this._onVisiblePage());
         this._syncBar();
     }
 
@@ -206,6 +183,16 @@ export class SessionsPage {
         this._window.set_content(content);
         this._overlay = null;
         this._originalContent = null;
+    }
+
+    // Reload when the user switches to this page (not mid-deletion / mid-selection).
+    _onVisiblePage() {
+        const visible = this._window.get_visible_page() === this.page;
+        const entered = visible && !this._pageVisible;
+        this._pageVisible = visible;
+        if (entered && !this._busy && !this._selectionMode && !this._closed)
+            this.reload();
+        this._syncBar();
     }
 
     _syncBar() {
@@ -232,10 +219,11 @@ export class SessionsPage {
 
     _setStatus(widget) {
         if (this._statusWidget)
-            this._headGroup.remove(this._statusWidget);
+            this._statusGroup.remove(this._statusWidget);
         this._statusWidget = widget;
         if (widget)
-            this._headGroup.add(widget);
+            this._statusGroup.add(widget);
+        this._statusGroup.visible = !!widget;
     }
 
     _clearProjects() {
@@ -333,8 +321,7 @@ export class SessionsPage {
     }
 
     // After the user (un)checks a row or a project: unchecking the last selected
-    // conversation leaves the mode (entering with the trash button, with nothing
-    // selected yet, keeps it open until something is selected or Annulla/Esc).
+    // conversation leaves the mode.
     _afterUserToggle(checked) {
         if (!checked && this._selectionMode && this._selected.size === 0) {
             this._applySelectionMode(false);
@@ -387,7 +374,6 @@ export class SessionsPage {
             this._syncing = false;
         }
         const n = this._selected.size;
-        this._trashModeButton.visible = !this._selectionMode;
         this._deleteSelectedButton.sensitive = n > 0 && !this._busy;
         this._cancelSelectButton.sensitive = !this._busy;
         this._syncBar();
@@ -396,7 +382,6 @@ export class SessionsPage {
     // Disable the controls while an operation runs (the page stays scrollable).
     _setBusy(busy) {
         this._busy = busy;
-        this._headBox.sensitive = !busy;
         this._bar.sensitive = !busy;
         for (const group of this._projectGroups)
             group.sensitive = !busy;
