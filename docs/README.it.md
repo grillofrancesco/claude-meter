@@ -69,3 +69,7 @@ Disinstallazione: `gnome-extensions uninstall claude-meter@grillofra`. Lo storic
 [GPL-3.0-or-later](../LICENSE). Fork e modifiche sono benvenuti, con la stessa licenza.
 
 Claude Meter è un progetto indipendente, **non affiliato né approvato da Anthropic**. Claude, Claude Code e Clawd sono marchi di Anthropic.
+
+## Screenshot
+
+![Barra superiore con tre Clawd e gli anelli di utilizzo; menu con l'utilizzo del piano e la pagina Dettagli](../preview/ego-screenshot.png)
