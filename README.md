@@ -1,10 +1,10 @@
 # Claude Meter
 
-**English** · [Italiano](README.it.md)
+**English** · [Italiano](docs/README.it.md)
 
 GNOME Shell extension that shows your **Claude subscription usage** and your **Claude Code** activity in the top bar.
 
-<!-- Screenshots / GIFs: coming soon -->
+![Clawd animations: sleeping, getting the laptop out, working, celebrating](preview/clawd.gif)
 
 > **Requires a paid Claude subscription (Pro or Max)** signed in through Claude Code.
 > Without a subscription (free account, API key only, or Claude Code never signed in) the extension
@@ -61,7 +61,7 @@ Uninstall: `gnome-extensions uninstall claude-meter@grillofra`. Local history is
 - Styles: `styles/base.css` + `styles/dark.css` / `styles/light.css`; `./build.sh` generates `stylesheet-dark.css` / `stylesheet-light.css` and packs the extension into `dist/` (the zip uploaded to extensions.gnome.org).
 - Tests of the pure modules: `bash tests/run-all.sh`.
 - UI strings: always `t('area.section.name')` from `lib/i18n.js`, translations in `lib/locale/<area>.js`.
-- Clawd animations: PNG spritesheets in `clawd-animation/`, converted to `lib/sprites.js` by `gjs -m tools/build-animations.js install`. See [`SPRITES.md`](SPRITES.md).
+- Clawd animations: PNG spritesheets in `clawd-animation/`, converted to `lib/sprites.js` by `gjs -m tools/build-animations.js install`. See [`docs/SPRITES.md`](docs/SPRITES.md).
 - GNOME Shell extensions do not hot-reload: `dev/nested.sh start` runs an isolated headless GNOME Shell (needs `mutter-devkit`) with the extension; `eval`, `shot`, `log`, `stop` to inspect it.
 
 ## License

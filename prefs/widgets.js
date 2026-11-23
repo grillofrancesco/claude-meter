@@ -32,7 +32,7 @@ export class SignalTracker {
         for (const [obj, id] of this._handlers)
             obj.disconnect(id);
         this._handlers = [];
-        for (const [settings, object, property] of this._binds)
+        for (const [, object, property] of this._binds)
             Gio.Settings.unbind(object, property);
         this._binds = [];
     }

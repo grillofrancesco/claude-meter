@@ -87,7 +87,11 @@ export function fillWindow(window, settings, {store = null, iconsDir = null} = {
     clearInitialSpinFocus(window, general.spinRows);
     return {
         rebuild,
-        get generalPage() { return general.page; },
-        get sessionsPage() { return sessionsPage; },
+        get generalPage() {
+            return general.page;
+        },
+        get sessionsPage() {
+            return sessionsPage;
+        },
     };
 }

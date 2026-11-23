@@ -1,6 +1,6 @@
-// "Installer" delle animazioni: valida gli spritesheet di clawd-animation/ e genera lib/sprites.js.
-// Uso (da qualsiasi cwd):  gjs -m tools/build-animations.js <comando> [argomenti]   (vedi `help`)
-// I/O sincrono: va bene, non e' codice della shell.
+// Animation "installer": validates the spritesheets in clawd-animation/ and generates lib/sprites.js.
+// Usage (from any cwd):  gjs -m tools/build-animations.js <command> [arguments]   (see `help`)
+// Synchronous I/O is fine here: this is a developer tool, not shell code.
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GdkPixbuf from 'gi://GdkPixbuf';
@@ -21,7 +21,7 @@ const fail = msg => { throw new CliError(msg); };
 function readText(path) {
     const [ok, bytes] = GLib.file_get_contents(path);
     if (!ok)
-        fail(`impossibile leggere ${path}`);
+        fail(`cannot read ${path}`);
     return new TextDecoder().decode(bytes);
 }
 
@@ -36,7 +36,7 @@ function readManifest() {
     } catch (e) {
         if (e instanceof CliError)
             throw e;
-        return fail(`manifest non valido (${manifestPath}): ${e.message}`);
+        return fail(`invalid manifest (${manifestPath}): ${e.message}`);
     }
 }
 
@@ -60,11 +60,11 @@ function loadSheet(path) {
     };
 }
 
-// Valida manifest + sheet. Non scrive nulla. Restituisce {errors, lines, data}.
+// Validates manifest + sheets. Writes nothing. Returns {errors, lines, data}.
 function analyze(manifest) {
-    const errors = [];           // tutti i problemi (stringhe)
-    const general = [];          // problemi non gia' mostrati nelle righe per animazione
-    const animErrors = {};       // nome -> [messaggi]
+    const errors = [];           // every problem (strings)
+    const general = [];          // problems not already shown on the per-animation lines
+    const animErrors = {};       // name -> [messages]
     const pushG = m => { errors.push(m); general.push(m); };
     const addErr = (name, msg) => {
         (animErrors[name] ??= []).push(msg);
@@ -73,60 +73,60 @@ function analyze(manifest) {
 
     const fps = manifest.fps;
     if (!Number.isInteger(fps) || fps <= 0)
-        pushG('"fps" deve essere un intero positivo');
+        pushG('"fps" must be a positive integer');
     const pixel = manifest.pixel, maxHeight = manifest.maxHeight;
     if (!Number.isInteger(pixel) || pixel <= 0)
-        pushG('"pixel" deve essere un intero positivo');
+        pushG('"pixel" must be a positive integer');
     if (!Number.isInteger(maxHeight) || maxHeight <= 0)
-        pushG('"maxHeight" deve essere un intero positivo');
+        pushG('"maxHeight" must be a positive integer');
     const maxRows = Number.isInteger(pixel) && Number.isInteger(maxHeight) && pixel > 0
         ? Math.floor(maxHeight / pixel) : null;
 
     const anims = manifest.animations ?? {};
     const names = Object.keys(anims);
     if (names.length === 0)
-        pushG('nessuna animazione nel manifest');
+        pushG('no animation in the manifest');
 
     let height = null, frameWidth = null;
-    const info = {};   // nome -> {frames (rows[][]), rowMin, rowMax, perFrame:[{min,max}]}
+    const info = {};   // name -> {frames (rows[][]), rowMin, rowMax, perFrame:[{min,max}]}
     for (const name of names) {
         const a = anims[name];
         if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name))
-            addErr(name, 'nome non valido (solo lettere, cifre, _)');
+            addErr(name, 'invalid name (letters, digits and _ only)');
         if (a.loop !== true && a.loop !== false)
-            addErr(name, '"loop" deve essere true/false');
+            addErr(name, '"loop" must be true/false');
         if (a.seconds !== undefined) {
             if (a.loop === false)
-                addErr(name, 'le animazioni con loop:false non possono avere "seconds"');
+                addErr(name, 'animations with loop:false cannot have "seconds"');
             else if (typeof a.seconds !== 'number' || !(a.seconds > 0))
-                addErr(name, '"seconds" deve essere > 0');
+                addErr(name, '"seconds" must be > 0');
         }
         const path = GLib.build_filenamev([animDir, a.file ?? '']);
         if (!a.file || !GLib.file_test(path, GLib.FileTest.IS_REGULAR)) {
-            addErr(name, `file "${a.file}" non trovato`);
+            addErr(name, `file "${a.file}" not found`);
             continue;
         }
         let sheet;
         try {
             sheet = loadSheet(path);
         } catch (e) {
-            addErr(name, `PNG illeggibile: ${e.message}`);
+            addErr(name, `unreadable PNG: ${e.message}`);
             continue;
         }
         const fw = a.frameWidth ?? sheet.height;
         if (!Number.isInteger(fw) || fw <= 0) {
-            addErr(name, 'frameWidth non valido');
+            addErr(name, 'invalid frameWidth');
             continue;
         }
         if (sheet.width % fw !== 0) {
-            addErr(name, `larghezza sheet ${sheet.width} non multipla di frameWidth ${fw}`);
+            addErr(name, `sheet width ${sheet.width} is not a multiple of frameWidth ${fw}`);
             continue;
         }
         if (height === null) {
             height = sheet.height;
             frameWidth = fw;
         } else if (sheet.height !== height || fw !== frameWidth) {
-            addErr(name, `dimensione ${fw}x${sheet.height} diversa da ${frameWidth}x${height}`);
+            addErr(name, `size ${fw}x${sheet.height} differs from ${frameWidth}x${height}`);
             continue;
         }
         const frames = [];
@@ -158,26 +158,26 @@ function analyze(manifest) {
     const states = manifest.states ?? {};
     for (const [state, target] of Object.entries(states)) {
         if (!STATE_NAMES.includes(state))
-            pushG(`stato sconosciuto "${state}"`);
+            pushG(`unknown state "${state}"`);
         for (const n of Array.isArray(target) ? target : [target]) {
             if (!anims[n])
-                pushG(`stato "${state}": animazione "${n}" inesistente`);
+                pushG(`state "${state}": animation "${n}" does not exist`);
         }
     }
     for (const s of STATE_NAMES) {
         if (states[s] === undefined)
-            pushG(`stato "${s}" non assegnato`);
+            pushG(`state "${s}" not assigned`);
     }
 
-    // Altezza: riga piu' bassa globale come riferimento (i piedi); i frame che salgono oltre
-    // maxRows righe sopra di essa sono quelli che sforano.
+    // Height: the lowest row over every frame (the feet) is the reference; frames reaching
+    // more than maxRows rows above it are the ones that overflow.
     const loaded = Object.keys(info);
     const globalBottom = loaded.length ? Math.max(...loaded.map(n => info[n].rowMax)) : 0;
     const lines = [];
     if (maxRows !== null)
-        lines.push(`Limite: altezza max ${maxHeight} px = ${maxRows} righe (pixel ${pixel} px)`);
+        lines.push(`Limit: max height ${maxHeight} px = ${maxRows} rows (pixel ${pixel} px)`);
     else
-        lines.push('Limite: non definito (mancano "pixel"/"maxHeight" nel manifest)');
+        lines.push('Limit: undefined ("pixel"/"maxHeight" missing from the manifest)');
     const nameW = Math.max(0, ...names.map(n => n.length));
     for (const name of names) {
         const pre = `  ${name.padEnd(nameW)}  `;
@@ -186,26 +186,37 @@ function analyze(manifest) {
         const inf = info[name];
         if (inf) {
             if (inf.rowMax < 0) {
-                msgs.push('tutti i frame sono trasparenti');
+                msgs.push('every frame is transparent');
             } else {
                 const n = inf.rowMax - inf.rowMin + 1;
-                desc = `${String(inf.frames.length).padStart(2)} frame  righe ${inf.rowMin}..${inf.rowMax} (${n})  `;
+                desc = `${String(inf.frames.length).padStart(2)} frames  rows ${inf.rowMin}..${inf.rowMax} (${n})  `;
                 if (maxRows !== null && n > maxRows) {
                     const bad = [];
                     inf.perFrame.forEach((r, i) => {
                         if (r.max >= 0 && (globalBottom - r.min + 1 > maxRows || r.max - r.min + 1 > maxRows))
                             bad.push(i);
                     });
-                    const m = `${n} righe > ${maxRows}`;
-                    msgs.push(bad.length ? `${m} (frame ${bad.join(', ')})` : m);
+                    const m = `${n} rows > ${maxRows}`;
+                    msgs.push(bad.length ? `${m} (frames ${bad.join(', ')})` : m);
                     errors.push(`${name}: ${m}`);
                 }
             }
         }
-        lines.push(pre + desc + (msgs.length ? `ERRORE: ${msgs.join('; ')}` : 'OK'));
+        lines.push(pre + desc + (msgs.length ? `ERROR: ${msgs.join('; ')}` : 'OK'));
+    }
+    // An overflow can come from a stray pixel low in another frame: say which frames set
+    // the bottom row the others are measured from.
+    if (maxRows !== null && loaded.length && errors.some(e => / rows > /.test(e))) {
+        const refs = [];
+        for (const n of loaded) {
+            const frames = info[n].perFrame.flatMap((r, i) => (r.max === globalBottom ? [i] : []));
+            if (frames.length)
+                refs.push(`${n} frame${frames.length > 1 ? 's' : ''} ${frames.join(', ')}`);
+        }
+        lines.push(`  bottom row ${globalBottom} (the feet) comes from: ${refs.join('; ')}`);
     }
 
-    // Ritaglio globale unico.
+    // One global crop.
     let grid = null;
     if (loaded.length) {
         let minX = Infinity, minY = Infinity, maxX = -1, maxY = -1;
@@ -224,15 +235,15 @@ function analyze(manifest) {
         if (maxX >= 0) {
             grid = {minX, maxX, minY, maxY, w: maxX - minX + 1, h: maxY - minY + 1, frameWidth, height};
             if (maxRows !== null && grid.h > maxRows)
-                errors.push(`griglia installata alta ${grid.h} righe > ${maxRows} (insieme di tutte le animazioni)`);
+                errors.push(`installed grid is ${grid.h} rows tall > ${maxRows} (all animations together)`);
             if (maxRows !== null) {
-                lines.push(`Griglia installata: ${grid.w}x${grid.h} → ${grid.w * pixel}x${grid.h * pixel} px` +
-                    (grid.h > maxRows ? '  ERRORE: supera il limite' : ''));
+                lines.push(`Installed grid: ${grid.w}x${grid.h} → ${grid.w * pixel}x${grid.h * pixel} px` +
+                    (grid.h > maxRows ? '  ERROR: over the limit' : ''));
             }
         }
     }
 
-    // Palette + dati (solo se i dati sono completi).
+    // Palette + data (only when the data is complete).
     let palette = null, out = null;
     if (grid && loaded.length === names.length) {
         palette = new Map();
@@ -268,7 +279,7 @@ function analyze(manifest) {
             });
         }
         if (tooMany)
-            pushG(`piu' di ${PALETTE_CHARS.length} colori`);
+            pushG(`more than ${PALETTE_CHARS.length} colours`);
     }
 
     return {errors, general, lines, info, names, anims, states, fps, pixel, maxHeight, maxRows, grid, palette, out};
@@ -318,37 +329,37 @@ function currentSprites() {
     return GLib.file_test(outPath, GLib.FileTest.EXISTS) ? readText(outPath) : null;
 }
 
-// check/install: stampa il report; ritorna l'analisi.
+// check/install: prints the report; returns the analysis.
 function runCheck(manifest) {
     const r = analyze(manifest);
     print(r.lines.join('\n'));
     for (const e of r.general)
-        print(`ERRORE: ${e}`);
+        print(`ERROR: ${e}`);
     return r;
 }
 
 function cmdCheck() {
     const r = runCheck(readManifest());
     if (r.errors.length) {
-        print(`Controllo fallito: ${r.errors.length} problema/i`);
+        print(`Check failed: ${r.errors.length} problem(s)`);
         return 1;
     }
-    print('Controllo OK (nulla scritto)');
+    print('Check OK (nothing written)');
     return 0;
 }
 
 function cmdInstall() {
     const r = runCheck(readManifest());
     if (r.errors.length || !r.palette) {
-        print('Installazione rifiutata: lib/sprites.js non modificato');
+        print('Install refused: lib/sprites.js not modified');
         return 1;
     }
     const text = render(r);
     if (text === currentSprites())
-        print('lib/sprites.js gia\' aggiornato');
+        print('lib/sprites.js already up to date');
     else {
         writeText(outPath, text);
-        print(`lib/sprites.js scritto (${r.palette.size} colori, ${r.fps} fps)`);
+        print(`lib/sprites.js written (${r.palette.size} colours, ${r.fps} fps)`);
     }
     return 0;
 }
@@ -356,25 +367,25 @@ function cmdInstall() {
 function cmdList() {
     const manifest = readManifest();
     const r = analyze(manifest);
-    print(`Manifest: fps ${r.fps}, pixel ${r.pixel} px, maxHeight ${r.maxHeight} px (max ${r.maxRows} righe)`);
-    print('Animazioni:');
+    print(`Manifest: fps ${r.fps}, pixel ${r.pixel} px, maxHeight ${r.maxHeight} px (max ${r.maxRows} rows)`);
+    print('Animations:');
     for (const name of r.names) {
         const a = r.anims[name], inf = r.info[name];
-        const kind = a.loop ? `loop${a.seconds ? `, ${a.seconds} s` : ''}` : 'una volta';
+        const kind = a.loop ? `loop${a.seconds ? `, ${a.seconds} s` : ''}` : 'once';
         const rows = inf && inf.rowMax >= 0
-            ? `righe ${inf.rowMin}..${inf.rowMax} (${inf.rowMax - inf.rowMin + 1})` : 'righe ?';
-        print(`  ${name}: ${a.file}, ${inf ? inf.frames.length : '?'} frame, ${kind}, ${rows}`);
+            ? `rows ${inf.rowMin}..${inf.rowMax} (${inf.rowMax - inf.rowMin + 1})` : 'rows ?';
+        print(`  ${name}: ${a.file}, ${inf ? inf.frames.length : '?'} frames, ${kind}, ${rows}`);
     }
-    print('Stati:');
+    print('States:');
     for (const [s, v] of Object.entries(r.states))
         print(`  ${s}: ${Array.isArray(v) ? v.join(', ') : v}`);
     if (r.errors.length || !r.palette) {
-        print('lib/sprites.js: impossibile confrontare (il controllo fallisce, esegui `check`)');
+        print('lib/sprites.js: cannot compare (the check fails, run `check`)');
     } else {
         const cur = currentSprites();
         print(cur === render(r)
-            ? 'lib/sprites.js: allineato al manifest e agli sheet'
-            : 'lib/sprites.js: NON allineato (esegui `install`)');
+            ? 'lib/sprites.js: in sync with the manifest and the sheets'
+            : 'lib/sprites.js: NOT in sync (run `install`)');
     }
     return 0;
 }
@@ -382,22 +393,22 @@ function cmdList() {
 function cmdPreview(args) {
     const [name, frameArg] = args;
     if (!name)
-        fail('uso: preview <nome> [frame]');
+        fail('usage: preview <name> [frame]');
     const r = analyze(readManifest());
     const inf = r.info[name];
     if (!inf)
-        fail(`animazione "${name}" inesistente o non leggibile`);
+        fail(`animation "${name}" does not exist or is unreadable`);
     let list = inf.frames.map((f, i) => i);
     if (frameArg !== undefined) {
         const n = Number(frameArg);
         if (!Number.isInteger(n) || n < 0 || n >= inf.frames.length)
-            fail(`frame non valido (0..${inf.frames.length - 1})`);
+            fail(`invalid frame (0..${inf.frames.length - 1})`);
         list = [n];
     }
     const bg = [40, 40, 48];
     for (const i of list) {
-        print(`${name} frame ${i}/${inf.frames.length - 1}  (righe usate ${inf.perFrame[i].min}..${inf.perFrame[i].max}` +
-            `, limite ${r.maxRows} righe)`);
+        print(`${name} frame ${i}/${inf.frames.length - 1}  (rows used ${inf.perFrame[i].min}..${inf.perFrame[i].max}` +
+            `, limit ${r.maxRows} rows)`);
         inf.frames[i].forEach((row, y) => {
             let s = `\x1b[2m${String(y).padStart(2)} \x1b[0m`;
             for (const p of row) {
@@ -424,10 +435,10 @@ function parseFlags(args) {
             flags[a.slice(2)] = true;
         } else if (a === '--name' || a === '--seconds' || a === '--frame-width') {
             if (i + 1 >= args.length)
-                fail(`${a} richiede un valore`);
+                fail(`${a} needs a value`);
             flags[a.slice(2)] = args[++i];
         } else if (a.startsWith('--')) {
-            fail(`opzione sconosciuta ${a}`);
+            fail(`unknown option ${a}`);
         } else {
             pos.push(a);
         }
@@ -438,40 +449,40 @@ function parseFlags(args) {
 function cmdAdd(args) {
     const {pos, flags} = parseFlags(args);
     if (pos.length !== 1 || !flags.name || !(flags.loop || flags.once) || (flags.loop && flags.once))
-        fail('uso: add <png> --name <nome> (--loop [--seconds N] | --once) [--frame-width N]');
+        fail('usage: add <png> --name <name> (--loop [--seconds N] | --once) [--frame-width N]');
     const manifest = readManifest();
     const name = flags.name;
     if (manifest.animations?.[name])
-        fail(`l'animazione "${name}" esiste gia'`);
+        fail(`animation "${name}" already exists`);
     if (flags.once && flags.seconds !== undefined)
-        fail('--seconds si usa solo con --loop');
+        fail('--seconds is only valid with --loop');
     let src = pos[0];
     if (!GLib.file_test(src, GLib.FileTest.IS_REGULAR))
         src = GLib.build_filenamev([animDir, pos[0]]);
     if (!GLib.file_test(src, GLib.FileTest.IS_REGULAR))
-        fail(`file "${pos[0]}" non trovato`);
+        fail(`file "${pos[0]}" not found`);
     const file = GLib.path_get_basename(src);
     const dest = GLib.build_filenamev([animDir, file]);
     if (GLib.path_get_dirname(GLib.canonicalize_filename(src, null)) !== animDir) {
         if (GLib.file_test(dest, GLib.FileTest.EXISTS))
-            fail(`${file} esiste gia' in clawd-animation/`);
+            fail(`${file} already exists in clawd-animation/`);
         Gio.File.new_for_path(src).copy(Gio.File.new_for_path(dest), Gio.FileCopyFlags.NONE, null, null);
-        print(`Copiato ${file} in clawd-animation/`);
+        print(`Copied ${file} to clawd-animation/`);
     }
     const entry = {file, loop: !!flags.loop};
     if (flags.seconds !== undefined) {
         entry.seconds = Number(flags.seconds);
         if (!(entry.seconds > 0))
-            fail('--seconds deve essere > 0');
+            fail('--seconds must be > 0');
     }
     if (flags['frame-width'] !== undefined) {
         entry.frameWidth = Number(flags['frame-width']);
         if (!Number.isInteger(entry.frameWidth) || entry.frameWidth <= 0)
-            fail('--frame-width non valido');
+            fail('invalid --frame-width');
     }
     manifest.animations[name] = entry;
     writeManifest(manifest);
-    print(`Aggiunta "${name}" al manifest. Controllo:`);
+    print(`Added "${name}" to the manifest. Checking:`);
     const code = cmdCheck();
     print('Per applicare: gjs -m tools/build-animations.js install');
     return code;
@@ -480,18 +491,18 @@ function cmdAdd(args) {
 function cmdRemove(args) {
     const [name] = args;
     if (!name)
-        fail('uso: remove <nome>');
+        fail('usage: remove <name>');
     const manifest = readManifest();
     if (!manifest.animations?.[name])
-        fail(`animazione "${name}" inesistente`);
+        fail(`animation "${name}" does not exist`);
     const users = Object.entries(manifest.states ?? {})
         .filter(([, v]) => (Array.isArray(v) ? v : [v]).includes(name)).map(([k]) => k);
     if (users.length)
-        fail(`"${name}" e' usata dagli stati: ${users.join(', ')} (cambiali con set-state)`);
+        fail(`"${name}" is used by the states: ${users.join(', ')} (change them with set-state)`);
     const file = manifest.animations[name].file;
     delete manifest.animations[name];
     writeManifest(manifest);
-    print(`Rimossa "${name}" dal manifest. Il file ${file} e' stato mantenuto in clawd-animation/.`);
+    print(`Removed "${name}" from the manifest. The file ${file} was kept in clawd-animation/.`);
     print('Per applicare: gjs -m tools/build-animations.js install');
     return 0;
 }
@@ -499,43 +510,43 @@ function cmdRemove(args) {
 function cmdSetState(args) {
     const [state, value] = args;
     if (!STATE_NAMES.includes(state) || !value || args.length !== 2)
-        fail('uso: set-state <sleep|start|work|done> <nome[,nome...]>');
+        fail('usage: set-state <sleep|start|work|done> <name[,name...]>');
     const manifest = readManifest();
     const list = value.split(',').map(s => s.trim()).filter(Boolean);
     if (list.length === 0)
-        fail('nessun nome indicato');
+        fail('no name given');
     if (state !== 'work' && list.length > 1)
-        fail(`solo "work" accetta piu' animazioni`);
+        fail('only "work" accepts several animations');
     for (const n of list) {
         const a = manifest.animations?.[n];
         if (!a)
-            fail(`animazione "${n}" inesistente`);
+            fail(`animation "${n}" does not exist`);
         if (state === 'start' && a.loop !== false)
-            fail(`"start" richiede un'animazione non in loop ("${n}" e' in loop)`);
+            fail(`"start" needs a non-looping animation ("${n}" loops)`);
         if (state !== 'start' && a.loop !== true)
-            fail(`"${state}" richiede un'animazione in loop ("${n}" non lo e')`);
+            fail(`"${state}" needs a looping animation ("${n}" does not loop)`);
     }
     manifest.states ??= {};
     manifest.states[state] = state === 'work' ? list : list[0];
     writeManifest(manifest);
-    print(`Stato "${state}" = ${list.join(', ')}`);
+    print(`State "${state}" = ${list.join(', ')}`);
     print('Per applicare: gjs -m tools/build-animations.js install');
     return 0;
 }
 
 function usage() {
-    print(`Uso: gjs -m tools/build-animations.js <comando> [argomenti]
+    print(`Usage: gjs -m tools/build-animations.js <command> [arguments]
 
-  check                      valida tutto, non scrive nulla (exit 1 se ci sono problemi)
-  install                    (default) valida e, solo se tutto e' OK, scrive lib/sprites.js
-  list                       animazioni, stati e allineamento di lib/sprites.js
-  preview <nome> [frame]     mostra i frame nel terminale (colori ANSI)
-  add <png> --name <nome> (--loop [--seconds N] | --once) [--frame-width N]
-                             copia il PNG in clawd-animation/, aggiunge la voce e controlla
-  remove <nome>              toglie la voce dal manifest (rifiutato se usata da uno stato)
-  set-state <stato> <nome[,nome...]>
-                             stato: sleep|start|work|done (solo work accetta una lista)
-  help                       questo testo`);
+  check                      validates everything, writes nothing (exit 1 on problems)
+  install                    (default) validates and, only if everything is OK, writes lib/sprites.js
+  list                       animations, states and whether lib/sprites.js is in sync
+  preview <name> [frame]     shows the frames in the terminal (ANSI colours, frames from 0)
+  add <png> --name <name> (--loop [--seconds N] | --once) [--frame-width N]
+                             copies the PNG to clawd-animation/, adds the entry and checks
+  remove <name>              removes the entry from the manifest (refused if a state uses it)
+  set-state <state> <name[,name...]>
+                             state: sleep|start|work|done (only work takes a list)
+  help                       this text`);
 }
 
 try {
@@ -552,7 +563,7 @@ try {
     case 'set-state': code = cmdSetState(args); break;
     case 'help': case '--help': case '-h': usage(); break;
     default:
-        printerr(`Comando sconosciuto: ${cmd}\n`);
+        printerr(`Unknown command: ${cmd}\n`);
         usage();
         code = 1;
     }

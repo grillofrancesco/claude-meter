@@ -1,6 +1,6 @@
 # Animazioni dei Clawd
 
-[English](SPRITES.md) · **Italiano**
+[English](SPRITES.md) · **Italiano** · [README](README.it.md)
 
 Ogni sessione aperta di Claude Code compare nella barra in alto come un Clawd in pixel art, in una
 posizione fissa: la sessione più vecchia a sinistra, le nuove si aggiungono a destra, poi gli anelli
@@ -47,11 +47,13 @@ gjs -m tools/build-animations.js preview work
 # 3. genera lib/sprites.js e verifica
 gjs -m tools/build-animations.js install
 gjs -m tests/test-crabs.js
-gjs -m tools/build-animations.js list      # l'ultima riga deve dire che lib/sprites.js è allineato
+gjs -m tools/build-animations.js list      # l'ultima riga deve dire "lib/sprites.js: in sync ..."
 # 4. prova nella shell isolata, poi installa
 dev/nested.sh start && dev/nested.sh shot crabs 1000 0 280 32 && dev/nested.sh stop
 ./install.sh                               # su Wayland: esci e rientra nella sessione
-# 5. committa insieme clawd-animation/ e lib/sprites.js
+# 5. rigenera l'anteprima del README (serve Pillow)
+python3 tools/make-preview-gif.py
+# 6. committa insieme clawd-animation/, lib/sprites.js e preview/clawd.gif
 ```
 
 ## Flusso
@@ -134,7 +136,7 @@ Il manifest viene riscritto con JSON a 2 spazi.
 | Comando | Effetto |
 |---|---|
 | `check` | valida tutto e stampa il report, non scrive nulla; exit 1 se ci sono problemi |
-| `install` | stessa validazione; solo se è tutto OK scrive `lib/sprites.js`, altrimenti stampa i motivi e `Installazione rifiutata: lib/sprites.js non modificato` (exit 1) |
+| `install` | stessa validazione; solo se è tutto OK scrive `lib/sprites.js`, altrimenti stampa i motivi e `Install refused: lib/sprites.js not modified` (exit 1) |
 | `list` | animazioni (file, frame, loop/una volta, righe usate), mappa degli stati, e se `lib/sprites.js` è allineato |
 | `preview <nome> [frame]` | mostra i frame nel terminale a colori (trasparente = punti); i frame partono da 0 |
 | `add <png> --name N (--loop [--seconds S] \| --once) [--frame-width W]` | copia il PNG in `clawd-animation/`, aggiunge la voce, esegue `check` (poi serve `install`) |
@@ -150,14 +152,18 @@ gjs -m tools/build-animations.js set-state work work,work_C
 gjs -m tools/build-animations.js install
 ```
 
-Il report di `check`/`install` inizia sempre dal limite e dice, per animazione, le righe usate
-(nelle coordinate originali dello sheet) e i frame che sforano:
+Il report di `check`/`install` (in inglese, come tutti i messaggi dello strumento) inizia sempre
+dal limite e dice, per animazione, le righe usate (nelle coordinate originali dello sheet) e i frame
+che sforano. Le righe si misurano dalla riga più bassa di **tutti** i frame (i piedi), quindi quando
+qualcosa sfora il report dice anche quali frame fissano quella riga: spesso è un solo pixel
+sporco in basso in un altro frame (qui il frame 0 di `success`) a far sforare i frame più alti.
 
 ```
-Limite: altezza max 26 px = 13 righe (pixel 2 px)
-  idle        16 frame  righe 2..14 (13)  OK
-  success     16 frame  righe 0..15 (16)  ERRORE: 16 righe > 13 (frame 3, 4, 10, 11)
-Griglia installata: 16x16 → 32x32 px  ERRORE: supera il limite
+Limit: max height 26 px = 13 rows (pixel 2 px)
+  idle        16 frames  rows 2..14 (13)  OK
+  success     16 frames  rows 2..15 (14)  ERROR: 14 rows > 13 (frames 3, 4, 10, 11)
+  bottom row 15 (the feet) comes from: success frame 0
+Installed grid: 16x14 → 32x28 px  ERROR: over the limit
 ```
 
 `lib/sprites.js` esporta `FPS`, `PIXEL`, `MAX_HEIGHT`, `SPRITE_HEIGHT` (= `GRID_H * PIXEL`, px),

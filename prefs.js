@@ -3,7 +3,7 @@ import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/ex
 import {fillWindow} from './prefs/window.js';
 
 export default class ClaudeMeterPrefs extends ExtensionPreferences {
-    async fillPreferencesWindow(window) {
+    fillPreferencesWindow(window) {
         fillWindow(window, this.getSettings(), {iconsDir: `${this.path}/icons`});
     }
 }

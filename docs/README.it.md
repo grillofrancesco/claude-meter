@@ -1,10 +1,10 @@
 # Claude Meter
 
-[English](README.md) · **Italiano**
+[English](../README.md) · **Italiano**
 
 Estensione GNOME Shell che mostra nella barra superiore l'**utilizzo del tuo abbonamento Claude** e l'attività di **Claude Code**.
 
-<!-- Screenshot / GIF: in arrivo -->
+![Animazioni dei Clawd: dorme, tira fuori il portatile, lavora, festeggia](../preview/clawd.gif)
 
 > **Serve un abbonamento Claude a pagamento (Pro o Max)** con accesso effettuato da Claude Code.
 > Senza abbonamento (account gratuito, solo chiave API, o Claude Code mai autenticato) l'estensione
@@ -61,11 +61,11 @@ Disinstallazione: `gnome-extensions uninstall claude-meter@grillofra`. Lo storic
 - Stili: `styles/base.css` + `styles/dark.css` / `styles/light.css`; `./build.sh` genera `stylesheet-dark.css` / `stylesheet-light.css` e crea il pacchetto in `dist/` (lo zip da caricare su extensions.gnome.org).
 - Test dei moduli puri: `bash tests/run-all.sh`.
 - Testi dell'interfaccia: sempre `t('area.sezione.nome')` da `lib/i18n.js`, traduzioni in `lib/locale/<area>.js`.
-- Animazioni dei Clawd: spritesheet PNG in `clawd-animation/`, convertiti in `lib/sprites.js` da `gjs -m tools/build-animations.js install`. Vedi [`SPRITES.md`](SPRITES.md).
+- Animazioni dei Clawd: spritesheet PNG in `clawd-animation/`, convertiti in `lib/sprites.js` da `gjs -m tools/build-animations.js install`. Vedi [`SPRITES.it.md`](SPRITES.it.md).
 - Le estensioni GNOME Shell non si ricaricano a caldo: `dev/nested.sh start` avvia una GNOME Shell headless isolata (richiede `mutter-devkit`) con l'estensione; `eval`, `shot`, `log`, `stop` per ispezionarla.
 
 ## Licenza
 
-[GPL-3.0-or-later](LICENSE). Fork e modifiche sono benvenuti, con la stessa licenza.
+[GPL-3.0-or-later](../LICENSE). Fork e modifiche sono benvenuti, con la stessa licenza.
 
 Claude Meter è un progetto indipendente, **non affiliato né approvato da Anthropic**. Claude, Claude Code e Clawd sono marchi di Anthropic.

@@ -319,9 +319,8 @@ export class SessionsPage {
             entry.row.activatable_widget = on && !session.active ? entry.check : null;
             setClickable(entry.row, on && !session.active);
         }
-        for (const info of this._groups.values()) {
+        for (const info of this._groups.values())
             this._updateCheckVisibility(info);
-        }
         if (on)
             this._addEscController();
         else
@@ -466,7 +465,7 @@ export class SessionsPage {
             const checked = check.active;
             if (checked && !this._selectionMode)
                 this._applySelectionMode(true);
-            for (const s of projectSessions.filter(s => !s.active)) {
+            for (const s of projectSessions.filter(p => !p.active)) {
                 if (checked)
                     this._selected.add(s);
                 else
