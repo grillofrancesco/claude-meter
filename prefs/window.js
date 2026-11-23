@@ -1,3 +1,4 @@
+import Adw from 'gi://Adw';
 import Gdk from 'gi://Gdk';
 import Gtk from 'gi://Gtk';
 
@@ -7,7 +8,7 @@ import {
 } from '../lib/i18n.js';
 import {SessionsPage} from './sessionsPage.js';
 import {buildGeneralPage} from './generalPage.js';
-import {SignalTracker, clearInitialSpinFocus} from './widgets.js';
+import {SignalTracker, clearInitialSpinFocus, setClickableDescendants} from './widgets.js';
 
 // The tab icons (brush, chat bubble) ship with the extension: add its icons/
 // directory to the icon theme once per prefs process.
@@ -68,6 +69,9 @@ export function fillWindow(window, settings, {store = null, iconsDir = null} = {
     };
 
     build();
+    // Tab switchers (header bar and narrow bottom bar): set on the switcher, its
+    // per-page buttons (recreated with the pages) inherit the cursor.
+    setClickableDescendants(window, Adw.ViewSwitcher);
 
     const languageId = onLanguageChanged(() => rebuild());
     windowTracker.connect(settings, 'changed::language', () =>

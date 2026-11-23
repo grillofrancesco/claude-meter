@@ -4,7 +4,7 @@ import Gio from 'gi://Gio';
 
 import {panelWidths, SPRITE_H} from '../lib/crabs.js';
 import {t} from '../lib/i18n.js';
-import {bindComboRow} from './widgets.js';
+import {bindComboRow, setClickable, setClickableDescendants} from './widgets.js';
 import {createLanguageComboRow} from './languageSelector.js';
 
 // Builds the "Claude Meter" page. `tracker` is a SignalTracker (settings
@@ -211,6 +211,13 @@ export function buildGeneralPage(settings, tracker) {
     };
     warnRow.connect('notify::value', keepOrder);
     criticalRow.connect('notify::value', keepOrder);
+
+    // Pointer cursor on what reacts to a click: whole switch/combo rows, and only
+    // the -/+ buttons of the spin rows (their text field keeps the text cursor).
+    for (const row of [fiveHourRow, sevenDayRow, crabsRow, overflowRow, emptyRow, colorRow])
+        setClickable(row);
+    for (const row of [refreshRow, planRow, crabMaxRow, warnRow, criticalRow])
+        setClickableDescendants(row);
 
     return {page, spinRows: [refreshRow, planRow, crabMaxRow]};
 }

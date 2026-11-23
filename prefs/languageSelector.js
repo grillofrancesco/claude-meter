@@ -2,7 +2,7 @@ import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 
 import {LANGUAGES, resolveLanguage, t} from '../lib/i18n.js';
-import {bindComboRow} from './widgets.js';
+import {bindComboRow, setClickable} from './widgets.js';
 
 // Each language is always written in its own language (never translated).
 const LANGUAGE_NAMES = {it: 'Italiano', en: 'English'};
@@ -26,5 +26,6 @@ export function createLanguageComboRow(settings, tracker) {
         model: languageModel(),
     });
     bindLanguage(settings, row, tracker);
+    setClickable(row);
     return row;
 }

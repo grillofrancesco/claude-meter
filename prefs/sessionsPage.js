@@ -5,6 +5,7 @@ import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 
 import {t, tn, getLocale} from '../lib/i18n.js';
+import {setClickable, setClickableDescendants} from './widgets.js';
 
 Gio._promisify(Adw.AlertDialog.prototype, 'choose', 'choose_finish');
 
@@ -123,10 +124,12 @@ export class SessionsPage {
             css_classes: ['destructive-action'],
         });
         this._deleteSelectedButton.connect('clicked', () => this._onTrashSelected());
+        setClickable(this._cancelSelectButton);
+        setClickable(this._deleteSelectedButton);
 
         this._bar = new Gtk.Box({
             orientation: Gtk.Orientation.HORIZONTAL,
-            spacing: 12,
+            // Spacing and padding come from the stock .toolbar class (6 px).
             halign: Gtk.Align.CENTER,
             valign: Gtk.Align.END,
             margin_bottom: 12,
@@ -138,15 +141,19 @@ export class SessionsPage {
         for (const w of [this._cancelSelectButton, this._deleteSelectedButton])
             this._bar.append(w);
 
-        // Opaque rounded bar (the stock .osd lets the rows show through). Installed once
-        // per process: pages are rebuilt when the language changes.
+        // Opaque floating bar styled like a stock popover (libadwaita `popover > contents`:
+        // background, 15 px radius, border, shadow); the stock .osd lets the rows show through.
+        // Installed once per process: pages are rebuilt when the language changes.
         if (barCssInstalled)
             return;
         barCssInstalled = true;
         const css = new Gtk.CssProvider();
-        css.load_from_string('.claude-meter-bar { background-color: @popover_bg_color; ' +
-            'color: @popover_fg_color; border-radius: 12px; padding: 6px 8px; ' +
-            'box-shadow: 0 2px 10px alpha(black, 0.45), 0 0 0 1px alpha(@borders, 0.6); }');
+        css.load_from_string('.claude-meter-bar { background-color: var(--popover-bg-color); ' +
+            'color: var(--popover-fg-color); background-clip: padding-box; border-radius: 15px; ' +
+            'border: 1px solid RGB(0 0 0 / 14%); ' +
+            'box-shadow: 0 1px 5px 1px RGB(0 0 0 / 9%), 0 2px 14px 3px RGB(0 0 0 / 5%); }\n' +
+            '@media (prefers-contrast: more) { .claude-meter-bar { ' +
+            'border: 1px solid color-mix(in srgb, currentColor var(--border-opacity), transparent); } }');
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
     }
@@ -261,6 +268,7 @@ export class SessionsPage {
             css_classes: ['pill', 'suggested-action'],
         });
         retry.connect('clicked', () => this.reload());
+        setClickable(retry);
         status.set_child(retry);
         this._setStatus(status);
     }
@@ -309,6 +317,7 @@ export class SessionsPage {
         for (const [session, entry] of this._rows) {
             this._updateCheckVisibility(entry);
             entry.row.activatable_widget = on && !session.active ? entry.check : null;
+            setClickable(entry.row, on && !session.active);
         }
         for (const info of this._groups.values()) {
             this._updateCheckVisibility(info);
@@ -449,6 +458,7 @@ export class SessionsPage {
             // Row suffixes sit inside the row padding: line the centers up.
             margin_end: 14,
         });
+        setClickable(check);
         const info = {sessions: projectSessions, check, hover: false};
         check.connect('toggled', () => {
             if (this._syncing)
@@ -485,6 +495,7 @@ export class SessionsPage {
         });
         if (session.active)
             check.tooltip_text = t('prefs.sessions.activeTooltip');
+        setClickable(check);
         check.connect('toggled', () => {
             if (this._syncing)
                 return;
@@ -506,8 +517,10 @@ export class SessionsPage {
             }));
         }
         row.add_suffix(check);
-        if (this._selectionMode && !session.active)
+        if (this._selectionMode && !session.active) {
             row.activatable_widget = check;
+            setClickable(row);
+        }
         group.add(row);
         const entry = {row, group, projectSessions, check, hover: false};
         this._rows.set(session, entry);
@@ -606,7 +619,10 @@ export class SessionsPage {
         dialog.set_default_response('cancel');
         dialog.set_close_response('cancel');
 
-        const response = await dialog.choose(this._window, null);
+        // choose() presents the dialog: its response buttons exist only from then on.
+        const choice = dialog.choose(this._window, null);
+        setClickableDescendants(dialog);
+        const response = await choice;
         if (response !== 'delete' || this._closed)
             return null;
 

@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import Gtk from 'gi://Gtk';
 
 // Collects signal handler ids and disconnects them all when the window closes
 // (or on demand: pass no window for a tracker that is disposed by hand, e.g.
@@ -88,4 +89,40 @@ export function clearInitialSpinFocus(window, spinRows) {
             return GLib.SOURCE_REMOVE;
         });
     });
+}
+
+// Pointer cursor on widgets that do something when clicked, the default arrow
+// while they are insensitive. GTK propagates the INSENSITIVE state flag to the
+// children of an insensitive widget, so `state-flags-changed` covers both the
+// widget's own `sensitive` and an insensitive ancestor.
+const clickable = new WeakMap(); // widget -> bool
+
+function syncCursor(widget) {
+    const insensitive = (widget.get_state_flags() & Gtk.StateFlags.INSENSITIVE) !== 0;
+    // Not clickable: no own cursor (inherit). Insensitive: explicit arrow, so a
+    // clickable parent (e.g. a row in deletion mode) does not lend its pointer.
+    let name = null;
+    if (clickable.get(widget))
+        name = insensitive ? 'default' : 'pointer';
+    if ((widget.get_cursor()?.get_name() ?? null) !== name)
+        widget.set_cursor_from_name(name);
+}
+
+// `on` false = back to the inherited cursor (e.g. a row leaving deletion mode).
+export function setClickable(widget, on = true) {
+    if (!clickable.has(widget))
+        widget.connect('state-flags-changed', () => syncCursor(widget));
+    clickable.set(widget, on);
+    syncCursor(widget);
+}
+
+// setClickable() on every descendant of `root` that is a `type` (default
+// Gtk.Button): for the internal buttons of Adwaita widgets (spin rows, dialogs).
+export function setClickableDescendants(root, type = Gtk.Button) {
+    for (let child = root.get_first_child(); child; child = child.get_next_sibling()) {
+        if (child instanceof type)
+            setClickable(child);
+        else
+            setClickableDescendants(child, type);
+    }
 }

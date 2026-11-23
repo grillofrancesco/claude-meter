@@ -119,10 +119,10 @@
     spacing: 8px;
 }
 
-/* Preferences gear next to the title: flat round icon button; hover/active backgrounds
+/* Preferences gear next to the title: flat rounded icon button (stock .button radius); hover/active backgrounds
  * (same tones as the menu items) are in dark.css / light.css. */
 .claude-meter-prefs-button {
-    border-radius: 999px;
+    border-radius: 8px;
     background-color: transparent;
     padding: 6px;
     transition-duration: 100ms;
