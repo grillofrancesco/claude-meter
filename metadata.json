@@ -1,9 +1,9 @@
 {
   "uuid": "claude-meter@grillofra",
   "name": "Claude Meter",
-  "description": "Utilizzo del piano Claude Pro e token di Claude Code nella barra superiore.",
+  "description": "Claude subscription usage (5-hour and weekly limits) and Claude Code token counts in the top bar, with an animated Clawd for each open Claude Code session and a page to clean up old conversations.\n\nRequires a paid Claude Pro or Max subscription signed in through Claude Code: without it the extension only shows an error.\n\nPrivacy: it reads the Claude Code files in ~/.claude (credentials, conversation logs, session list) and sends the OAuth token only to api.anthropic.com, to read the plan usage. Nothing else leaves the computer. Not affiliated with Anthropic.",
   "shell-version": ["50"],
   "settings-schema": "org.gnome.shell.extensions.claude-meter",
-  "version-name": "0.1.0",
-  "url": ""
+  "version-name": "1.0",
+  "url": "https://github.com/grillofrancesco/claude-meter"
 }

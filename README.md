@@ -1,37 +1,71 @@
 # Claude Meter
 
-Estensione GNOME Shell (Fedora 44, GNOME 50, Wayland) che mostra nella barra superiore una sola icona; il menu contiene:
+**English** · [Italiano](README.it.md)
 
-- vista principale: utilizzo del piano Claude Pro (finestra 5 h, settimanale, eventuali limiti per modello, tempo al reset) ed età del dato;
-- pagina "Dettagli ›": token di input/output di Claude Code di oggi (da `~/.claude/projects/**/*.jsonl`, cache esclusa), grafico degli ultimi 7 giorni, preferenze;
-- aggiornamento automatico: token locali ogni 60 s, percentuali del piano ogni 5 min e all'apertura del menu se il dato ha più di 3 min. Le ultime percentuali valide restano salvate, così dopo un nuovo accesso sono subito visibili. L'endpoint di Anthropic risponde 429 se interrogato troppo spesso: in quel caso l'estensione attende (5→30 min, o quanto indicato da `Retry-After`) e mostra l'orario del prossimo tentativo, anche dopo un nuovo accesso.
+GNOME Shell extension that shows your **Claude subscription usage** and your **Claude Code** activity in the top bar.
 
-Lingua: italiano o inglese, dalla prima voce delle preferenze (finché non si sceglie, segue la lingua del desktop; inglese se non è italiano).
+<!-- Screenshots / GIFs: coming soon -->
 
-Colori: le barre seguono il tema chiaro/scuro e, a scelta nelle preferenze, il colore d'accento di sistema oppure verde/giallo/rosso in base alle soglie. Lo storico (30 giorni) è conservato in `~/.local/share/claude-meter/state.json`.
+> **Requires a paid Claude subscription (Pro or Max)** signed in through Claude Code.
+> Without a subscription (free account, API key only, or Claude Code never signed in) the extension
+> cannot read any usage data and stays in an error state (yellow message in the menu).
 
-## Installazione
+## Features
+
+- **Top bar**: two rings for the 5-hour and weekly plan limits, plus an animated Clawd for each open Claude Code session (sleeping when idle, working while Claude is busy). Extra sessions are counted as "+N".
+- **Menu**:
+  - plan usage with bars, time until each reset and age of the data;
+  - "Details" page: chart of the last 7 days and today's Claude Code input/output tokens (cache tokens excluded).
+- **Preferences**:
+  - appearance (language, colours: system accent or green/yellow/red thresholds);
+  - top bar contents (rings, Clawds, how many, what to show with no session);
+  - refresh intervals.
+- **Conversations page**: lists the Claude Code conversations grouped by project, with size and last use; selected conversations (or whole projects) can be moved to the **system trash**, linked data included. Conversations in progress cannot be deleted.
+- Italian and English interface (follows the desktop language until you choose one).
+
+## Requirements
+
+- GNOME Shell 50.
+- [Claude Code](https://claude.com/claude-code) signed in with a **Claude Pro or Max** account (`~/.claude/.credentials.json` must exist).
+
+## Installation
+
+From [extensions.gnome.org](https://extensions.gnome.org) (search "Claude Meter"), or from source:
 
 ```bash
+git clone https://github.com/grillofrancesco/claude-meter.git
+cd claude-meter
 ./install.sh
-# Wayland: esci e rientra nella sessione, poi
+# Wayland: log out and back in, then
 gnome-extensions enable claude-meter@grillofra
 ```
 
-Disinstallazione: `gnome-extensions uninstall claude-meter@grillofra` (stato locale in `~/.local/share/claude-meter/`).
+Uninstall: `gnome-extensions uninstall claude-meter@grillofra`. Local history is kept in `~/.local/share/claude-meter/` (delete it by hand if you want).
 
-## Dipendenze
-Nessuna oltre a GNOME Shell 50 (GJS, St, Soup 3). Serve Claude Code autenticato con un account Pro/Max (`~/.claude/.credentials.json`).
+## Privacy
 
-## Limitazioni
-- Le percentuali del piano arrivano dall'endpoint **non ufficiale** `https://api.anthropic.com/api/oauth/usage`, isolato in `lib/usageManager.js`: se Anthropic lo cambia, va aggiornato solo quel file.
-- Il token OAuth è usato in sola lettura e mai rinnovato: se è scaduto, il menu lo segnala finché Claude Code non lo rinnova (basta usare Claude Code).
-- I token locali riguardano solo Claude Code; la percentuale del piano include anche le altre superfici Claude.
-- Lo storico parte dal primo avvio e include solo i record degli ultimi 30 giorni ancora presenti nei file di Claude Code.
+- The plan percentages come from `https://api.anthropic.com/api/oauth/usage`, the same endpoint Claude Code uses for `/usage`. The request is authenticated with the Claude Code OAuth token, which is **only read**: never stored elsewhere, refreshed, logged or sent to anyone other than Anthropic.
+- Token counts and sessions are read locally from `~/.claude/projects/` and `~/.claude/sessions/`. Message contents are never stored or logged.
+- No telemetry, no other network connections.
+- The 30-day history is saved in `~/.local/share/claude-meter/state.json` (mode 0600).
 
-## Sviluppo
-- Stili: `styles/base.css` + `styles/dark.css` / `styles/light.css`; `./build.sh` genera `stylesheet-dark.css` e `stylesheet-light.css` (GNOME Shell li alterna al cambio tema) e crea il pacchetto in `dist/`.
-- Test dei moduli puri: `bash tests/run-all.sh` (tutti i `tests/test-*.js` + controllo dello schema).
-- Testi dell'interfaccia: mai scritti nel codice, sempre `t('area.sezione.nome')` da `lib/i18n.js`, con le traduzioni in `lib/locale/<area>.js` (italiano e inglese, stesse chiavi).
-- Animazioni dei Clawd: spritesheet PNG e manifest in `clawd-animation/` (versionati, non inclusi nel pacchetto), convertiti in `lib/sprites.js` da `gjs -m tools/build-animations.js install`. Frame 16×16 px, contenuto in massimo 13 righe (righe 2..14), stessa dimensione per tutti gli sheet, massimo 62 colori: `check` valida senza scrivere e `install` rifiuta se qualcosa non torna. Guida completa in [`SPRITES.md`](SPRITES.md).
-- Le estensioni JS non si ricaricano a caldo: `dev/nested.sh start` avvia una GNOME Shell headless isolata (richiede `mutter-devkit`) con l'estensione; `eval`, `shot`, `log`, `stop` per ispezionarla.
+## Notes and limitations
+
+- If the token has expired, the menu says the data is out of date: using Claude Code refreshes it.
+- The endpoint is rate-limited: the plan is refreshed every 5 minutes (configurable) and when the menu opens if the data is older than 60 s. After a "429 Too many requests" the extension waits (5 → 30 min, or the server's `Retry-After`) and shows the next attempt time.
+- Local token counts cover Claude Code only; the plan percentage includes every Claude surface (web, desktop, mobile).
+- The history starts from the first run and only includes records still present in Claude Code's files.
+
+## Development
+
+- Styles: `styles/base.css` + `styles/dark.css` / `styles/light.css`; `./build.sh` generates `stylesheet-dark.css` / `stylesheet-light.css` and packs the extension into `dist/` (the zip uploaded to extensions.gnome.org).
+- Tests of the pure modules: `bash tests/run-all.sh`.
+- UI strings: always `t('area.section.name')` from `lib/i18n.js`, translations in `lib/locale/<area>.js`.
+- Clawd animations: PNG spritesheets in `clawd-animation/`, converted to `lib/sprites.js` by `gjs -m tools/build-animations.js install`. See [`SPRITES.md`](SPRITES.md).
+- GNOME Shell extensions do not hot-reload: `dev/nested.sh start` runs an isolated headless GNOME Shell (needs `mutter-devkit`) with the extension; `eval`, `shot`, `log`, `stop` to inspect it.
+
+## License
+
+[GPL-3.0-or-later](LICENSE). Forks and modifications are welcome, under the same license.
+
+Claude Meter is an independent project, **not affiliated with or endorsed by Anthropic**. Claude, Claude Code and Clawd are trademarks of Anthropic.

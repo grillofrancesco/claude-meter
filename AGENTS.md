@@ -1,6 +1,6 @@
 # Claude Meter — GNOME Shell extension
 
-Monitors Claude usage from the GNOME top bar. Full spec: `plan.md` (Italian).
+Monitors Claude usage from the GNOME top bar. Requires a paid Claude subscription (Pro or Max) signed in through Claude Code. License: GPL-3.0-or-later (`LICENSE`). Published on GitHub and extensions.gnome.org (see "Release / EGO").
 
 ## Stack
 - GNOME Shell 50 (Fedora 44, Wayland), GJS 1.88, **ES modules only** (`import ... from 'gi://Gio'`, `resource:///org/gnome/shell/...`). No `imports.*` legacy syntax.
@@ -18,7 +18,7 @@ Monitors Claude usage from the GNOME top bar. Full spec: `plan.md` (Italian).
 ## File ownership
 | File | Owner |
 |---|---|
-| `metadata.json`, `extension.js`, `icons/`, `AGENTS.md`, `SPRITES.md`, `build.sh`, `install.sh`, `tools/build-animations.js`, `clawd-animation/`, `tests/run-all.sh` | orchestrator |
+| `metadata.json`, `extension.js`, `icons/`, `AGENTS.md`, `LICENSE`, `README.md`, `README.it.md`, `SPRITES.md`, `build.sh`, `install.sh`, `tools/build-animations.js`, `clawd-animation/`, `tests/run-all.sh` | orchestrator |
 | `lib/i18n.js`, `tests/test-i18n.js` | orchestrator (contract shared by everyone) |
 | `lib/locale/<area>.js` | the owner of the area: `common` (format.js) UI, `panel` UI, `prefs` Data/Settings, `errors` orchestrator |
 | `lib/planScheduler.js`, `tests/test-scheduler.js` | orchestrator |
@@ -68,7 +68,9 @@ Raw JSONL facts: one JSON object per line. Usage records have `message.usage` wi
 ### lib/usageManager.js
 ```js
 export class UsageError extends Error { constructor(code, message) } // .code
-// codes: 'no-credentials' | 'expired' | 'unauthorized' | 'rate-limited' | 'network' | 'invalid-response'
+// codes: 'no-credentials' | 'no-subscription' | 'expired' | 'unauthorized' | 'rate-limited' | 'network' | 'invalid-response'
+// 'no-subscription': credentials `subscriptionType` null/''/'free' (checked before expiry, no network) or HTTP 403.
+// 401 -> 'unauthorized'.
 export class UsageManager {
     constructor(credentialsPath = ~/.claude/.credentials.json)
     async fetch(cancellable = null) // -> Promise<PlanUsage>, throws UsageError
@@ -213,3 +215,11 @@ Claude Code writes `~/.claude/sessions/<pid>.json` with `kind` ('interactive'|'b
 - The usage endpoint returns 429 when polled too often: plan polling is separate (5 min default, 60 s staleness on menu open) with exponential back-off honouring `Retry-After`. A window past its `resetsAt` is shown as 0% with "Reset avvenuto" (old percent no longer true) and extension.js fetches again `RESET_FETCH_DELAY_S` after the reset (back-off still honoured).
 - The panel button hands its child the full 32 px, not the 26 px theme content box: crabs are shifted with `translation_y` (margins cannot be negative, and a child larger than its parent is clamped). The highlight box copies the stock technique (full height, 3 px transparent border, `inset 0 0 0 100px` box-shadow as background, horizontal padding = vertical gap 5 px): do NOT inset it with margins set from code, St's 150 ms transition paints the full-height box during the fade. Stock highlight = inset `box-shadow` on `#panel .panel-button:hover/:focus/:active/:checked`.
 - Never size a child actor from its parent's allocation (`notify::width` + `set_size`): if the value changes while the menu is not allocated the fill ends up wrong (bar at 2% with "40%" written). Menu bars are `St.DrawingArea` like the rings, colors from custom CSS properties (`-claude-meter-bar-*`).
+
+## Release / EGO
+Published on GitHub and extensions.gnome.org (review guidelines: gjs.guide/extensions/review-guidelines). Keep it acceptable:
+- License GPL-3.0-or-later (GPL-2.0-or-later compatible, required by EGO). `README.md` (English) and `README.it.md` (Italian) stay in sync and must say that a Claude Pro/Max subscription is required.
+- `metadata.json`: no `version` (EGO sets it), `version-name` ≤ 16 chars `[a-zA-Z0-9 .]`, `url` = GitHub repo, no `session-modes` (user only), no unused keys. The description declares the data read from `~/.claude` and the only network destination (api.anthropic.com).
+- Upload `dist/claude-meter@grillofra.shell-extension.zip` from `./build.sh`: no build/install scripts, no compiled schemas, no dev files, no unused media.
+- Everything created in `enable()` is destroyed in `disable()` (main-loop sources, signals, actors, notification sources); nothing created at import/constructor time. No Gtk/Adw/Gdk in shell code, no St/Clutter/Meta/Shell in prefs. No subprocesses, no telemetry, sparse logs.
+- Code must be explainable by the author: no leftover prompt-like comments, comments in English.

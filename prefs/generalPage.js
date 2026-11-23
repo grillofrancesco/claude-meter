@@ -187,14 +187,14 @@ export function buildGeneralPage(settings, tracker) {
     tracker.bind(settings, 'warn-threshold', warnRow, 'value', Gio.SettingsBindFlags.DEFAULT);
     tracker.bind(settings, 'critical-threshold', criticalRow, 'value', Gio.SettingsBindFlags.DEFAULT);
 
-    // Le soglie servono solo in modalità semaforo.
+    // Thresholds only matter in traffic-light mode.
     const syncThresholds = () => {
         thresholdGroup.sensitive = settings.get_string('bar-color-mode') === 'traffic';
     };
     syncThresholds();
     tracker.connect(settings, 'changed::bar-color-mode', syncThresholds);
 
-    // Avviso < critica, con aggiustamento gentile quando l'utente li incrocia.
+    // Keep warn < critical, nudging the other value when the user crosses them.
     let adjusting = false;
     const keepOrder = () => {
         if (adjusting)

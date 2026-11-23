@@ -229,6 +229,23 @@ async function testCredentials(tmpDir) {
         `${expiredElapsed} ms`);
     expiredManager.destroy();
 
+    for (const [name, subscriptionType] of [['null', null], ['free', 'free'], ['vuoto', '']]) {
+        const path = GLib.build_filenamev([tmpDir, `nosub-${name}.json`]);
+        writeCredentials(path, {
+            claudeAiOauth: {
+                accessToken: 'fake-token',
+                expiresAt: Date.now() - 60_000,
+                subscriptionType,
+            },
+        });
+        const manager = new UsageManager(path);
+        const start2 = Date.now();
+        await expectUsageErrorAsync(`subscriptionType ${name} -> no-subscription`,
+            () => manager.fetch(), 'no-subscription');
+        check(`subscriptionType ${name}: nessuna rete (< 50 ms)`, Date.now() - start2 < 50);
+        manager.destroy();
+    }
+
     const noTokenPath = GLib.build_filenamev([tmpDir, 'no-token.json']);
     writeCredentials(noTokenPath, { claudeAiOauth: { refreshToken: 'r' } });
     const noTokenManager = new UsageManager(noTokenPath);
